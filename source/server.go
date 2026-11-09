@@ -39,8 +39,6 @@ var analyticsHTML []byte
 //go:embed web_settings.html
 var settingsHTML []byte
 
-//go:embed web_login.html
-var loginHTML []byte
 
 //go:embed assets/web
 var webFS embed.FS
@@ -311,8 +309,7 @@ func startServerOn(addr string) (string, error) {
 	mux.HandleFunc("/dashboard.html", page(dashboardHTML))
 	mux.HandleFunc("/analytics.html", page(analyticsHTML))
 	mux.HandleFunc("/settings.html", page(settingsHTML))
-	mux.HandleFunc("/login.html", page(loginHTML))
-	registerAuth(mux)
+	mux.HandleFunc("/login.html", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/", http.StatusFound) })
 	registerStore(mux)
 	registerHistory(mux)
 	sub, _ := fs.Sub(webFS, "assets/web")
@@ -353,6 +350,6 @@ func startServerOn(addr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	go http.Serve(ln, requireAuth(mux))
+	go http.Serve(ln, mux)
 	return "http://" + ln.Addr().String() + "/", nil
 }
