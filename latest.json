@@ -1,6 +1,6 @@
 {
- "version": "1.5",
- "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/c87153f75c6e9eb1c8f0ec0e50f260135537112c/Actualat.exe",
- "sha256": "edbb2125e4698b35842b29a9219abc7e1c2b2eb832a29871bae48125639c7b07",
- "notes": "تصميم جديد للواجهة: شبكة بخطوط رفيعة، أرقام الخطوات كبيرة، وأيقونات مرسومة"
+ "version": "1.6",
+ "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/afc7636d0bfbf71c01b6fbe05ecaec250ca4fed0/Actualat.exe",
+ "sha256": "23aa8517d114af9234590ebf7ed82a10bd0f92ef59ab4ac996ccbe8bca86b395",
+ "notes": "شكل جديد خاص باكشوالات: شريط علوي بدل الجانبي، صفحة الإقفال الشهري، وأيقونة أوضح"
 }
