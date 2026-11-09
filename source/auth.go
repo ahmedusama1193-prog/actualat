@@ -140,10 +140,29 @@ func sessionUser(r *http.Request) string {
 	return ""
 }
 
+type creds struct {
+	User, Pass, NewPass string
+	Remember            *bool
+}
+
 func readCreds(r *http.Request) (u, p, np string) {
-	var b struct{ User, Pass, NewPass string }
+	c := readCredsFull(r)
+	return c.User, c.Pass, c.NewPass
+}
+
+func readCredsFull(r *http.Request) creds {
+	var b creds
 	json.NewDecoder(r.Body).Decode(&b)
-	return b.User, b.Pass, b.NewPass
+	return b
+}
+
+// بيحفظ آخر اسم مستخدم دخل (لو اختار "افتكر اسمي") عشان يتكتب لوحده المرة الجاية
+func rememberUser(c creds, name string) {
+	if c.Remember != nil && !*c.Remember {
+		setSetting("lastUser", "")
+		return
+	}
+	setSetting("lastUser", name)
 }
 
 func registerAuth(mux *http.ServeMux) {
@@ -152,7 +171,7 @@ func registerAuth(mux *http.ServeMux) {
 		if l := r.URL.Query().Get("lang"); l == "ar" || l == "en" {
 			setSetting("lang", l)
 		}
-		writeJSON(w, 200, map[string]interface{}{"hasUsers": len(listAccounts()) > 0, "user": sessionUser(r), "lang": uiLang(), "theme": uiTheme(), "version": appVersion})
+		writeJSON(w, 200, map[string]interface{}{"hasUsers": len(listAccounts()) > 0, "user": sessionUser(r), "lastUser": getSetting("lastUser"), "lang": uiLang(), "theme": uiTheme(), "version": appVersion})
 	})
 	// أول حساب على الجهاز — مسموح بس لو مفيش ولا حساب
 	mux.HandleFunc("/api/auth/setup", func(w http.ResponseWriter, r *http.Request) {
@@ -160,24 +179,26 @@ func registerAuth(mux *http.ServeMux) {
 			writeJSON(w, 403, map[string]string{"error": "في حساب على الجهاز ده بالفعل — سجّل دخول"})
 			return
 		}
-		u, p, _ := readCreds(r)
-		a, msg := newAccount(u, p)
+		c := readCredsFull(r)
+		a, msg := newAccount(c.User, c.Pass)
 		if a == nil {
 			writeJSON(w, 400, map[string]string{"error": msg})
 			return
 		}
 		putAccount(a)
+		rememberUser(c, a.Name)
 		startSession(w, userKey(a.Name))
 		writeJSON(w, 200, map[string]string{"user": a.Name})
 	})
 	mux.HandleFunc("/api/auth/login", func(w http.ResponseWriter, r *http.Request) {
-		u, p, _ := readCreds(r)
-		a := getAccount(userKey(u))
-		if a == nil || !checkPw(a, p) {
+		c := readCredsFull(r)
+		a := getAccount(userKey(c.User))
+		if a == nil || !checkPw(a, c.Pass) {
 			time.Sleep(700 * time.Millisecond)
 			writeJSON(w, 401, map[string]string{"error": "اسم المستخدم أو الباسورد غلط"})
 			return
 		}
+		rememberUser(c, a.Name)
 		startSession(w, userKey(a.Name))
 		writeJSON(w, 200, map[string]string{"user": a.Name})
 	})

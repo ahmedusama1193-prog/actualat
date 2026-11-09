@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <title>اكشوالات · Actualat</title>
 <link rel="icon" href="/assets/favicon.png">
-<link rel="stylesheet" href="/assets/base.css?v=17">
-<link rel="stylesheet" href="/assets/theme.css?v=17">
+<link rel="stylesheet" href="/assets/base.css?v=19">
+<link rel="stylesheet" href="/assets/theme.css?v=19">
 <script>window.__lang='ar';</script>
-<script src="/assets/i18n.js?v=17"></script>
+<script src="/assets/i18n.js?v=19"></script>
 <style>
   html,body{height:100%;margin:0}
   body{display:grid;grid-template-columns:minmax(340px,42%) 1fr;background:var(--bg)}
@@ -18,7 +18,7 @@
   .bm{display:flex;align-items:center;gap:14px;position:relative}
   .bm img{width:56px;height:56px}
   .bm .wm b{display:block;font-family:"ReemKufi",sans-serif;font-size:38px;line-height:1.1}
-  .bm .wm small{display:block;font-family:"Cinzel",serif;font-size:11px;letter-spacing:4.6px;color:#ff4a50;direction:ltr;text-align:start}
+  .bm .wm small{display:block;font-family:"Cinzel",serif;font-size:11px;letter-spacing:4.6px;color:#2cc5b0;direction:ltr;text-align:start}
   .brand p{position:relative;max-width:34ch;color:#a6abb5;font-size:15px;line-height:1.8;margin:0}
   .brand .ver{position:relative;color:#6f747e;font-size:12.5px}
   /* الفورم */
@@ -40,6 +40,8 @@
   .eye{position:absolute;inset-inline-end:0;top:0;width:46px;height:46px;background:none;border:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center}
   .eye:hover{color:var(--ink)}
   .eye svg{width:20px;height:20px}
+  .rem{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted);cursor:pointer;margin:-4px 0 6px;width:max-content}
+  .rem input{width:16px;height:16px;margin:0}
   .msg{min-height:22px;color:var(--bad);font-size:13.5px;margin:2px 0 10px}
   .form .btn{width:100%;height:48px;font-size:16px}
   .note{color:var(--muted);font-size:12.5px;margin-top:18px;line-height:1.7}
@@ -48,7 +50,7 @@
 </head>
 <body>
 <aside class="brand">
-  <svg class="lines" viewBox="0 0 560 420" fill="none" stroke-linecap="round"><path d="M20 410 560 40" stroke="#3a3e47" stroke-width="10"/><path d="M20 410 560 150" stroke="#e5262e" stroke-width="18"/><path d="M20 410 560 260" stroke="#3a3e47" stroke-width="10"/></svg>
+  <svg class="lines" viewBox="0 0 560 420" fill="none" stroke-linecap="round"><path d="M20 410 560 40" stroke="#3a3e47" stroke-width="10"/><path d="M20 410 560 150" stroke="#2cc5b0" stroke-width="18"/><path d="M20 410 560 260" stroke="#3a3e47" stroke-width="10"/></svg>
   <div class="bm" translate="no"><img src="/assets/mark-dark.svg" alt=""><div class="wm"><b>اكشوالات</b><small>ACTUALAT</small></div></div>
   <p id="tag">صرف المخازن ومستخلصات المقاولين، جاهزين كقوالب PCS.</p>
   <div class="ver" id="ver"></div>
@@ -61,6 +63,7 @@
     <label class="fld"><span>اسم المستخدم</span><div class="in"><input id="u" autocomplete="username" required></div></label>
     <label class="fld"><span>الباسورد</span><div class="in"><input id="p" type="password" class="pw" autocomplete="current-password" required><button type="button" class="eye" onclick="peek('p',this)" title="إظهار الباسورد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></label>
     <label class="fld hidden" id="p2w"><span>أكد الباسورد</span><div class="in"><input id="p2" type="password" class="pw" autocomplete="new-password"></div></label>
+    <label class="rem"><input type="checkbox" id="rem" checked> <span>افتكر اسم المستخدم</span></label>
     <div class="msg" id="msg" role="alert"></div>
     <button class="btn" id="go" type="submit">دخول</button>
     <div class="note hidden" id="note">الحساب بيتحفظ على الجهاز ده بس. لو نسيت الباسورد، أي حساب تاني على نفس الجهاز يقدر يمسح حسابك ويعمله من جديد من الإعدادات.</div>
@@ -85,7 +88,7 @@ async function state(q){
   $('lead').textContent=T(setup?'أول مرة البرنامج يفتح على الجهاز ده. اختار اسم مستخدم وباسورد، وهتدخل بيهم كل مرة.':'ادخل باسم المستخدم والباسورد بتوعك.');
   $('go').textContent=T(setup?'إنشاء الحساب والدخول':'دخول');
   $('p').autocomplete=setup?'new-password':'current-password';
-  $('u').focus();
+  if(!setup && s.lastUser && !$('u').value){ $('u').value=s.lastUser; $('p').focus(); } else $('u').focus();
 }
 function toggleLang(){ state('?lang='+(lang==='en'?'ar':'en')); }
 async function doAuth(e){
@@ -93,7 +96,7 @@ async function doAuth(e){
   if(setup && $('p').value!==$('p2').value){ $('msg').textContent=T('الباسورد والتأكيد مش زي بعض'); $('p2').focus(); return; }
   const b=$('go'); b.classList.add('busy'); b.disabled=true;
   try{
-    const r=await fetch(setup?'/api/auth/setup':'/api/auth/login',{method:'POST',body:JSON.stringify({user:$('u').value,pass:$('p').value})});
+    const r=await fetch(setup?'/api/auth/setup':'/api/auth/login',{method:'POST',body:JSON.stringify({user:$('u').value,pass:$('p').value,remember:$('rem').checked})});
     const j=await r.json();
     if(!r.ok) throw new Error(j.error||'خطأ');
     location.href='/';

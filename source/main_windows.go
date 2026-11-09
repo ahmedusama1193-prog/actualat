@@ -34,11 +34,40 @@ func hiddenCmd(name string, args ...string) *exec.Cmd {
 
 func psq(s string) string { return strings.ReplaceAll(s, "'", "''") }
 
+//go:embed app.ico
+var appIco []byte
+
+// ملف الأيقونة باسم فيه رقم الإصدار: مسار جديد مع كل إصدار = ويندوز مايقدرش يعرض نسخة قديمة محفوظة
+func iconFile() string {
+	return filepath.Join(installDir(), "actualat-"+strings.ReplaceAll(appVersion, ".", "_")+".ico")
+}
+
+func writeIconFile() string {
+	p := iconFile()
+	if _, err := os.Stat(p); err != nil {
+		os.MkdirAll(installDir(), 0o755)
+		os.WriteFile(p, appIco, 0o644)
+		olds, _ := filepath.Glob(filepath.Join(installDir(), "actualat-*.ico"))
+		for _, o := range olds {
+			if !strings.EqualFold(o, p) {
+				os.Remove(o)
+			}
+		}
+	}
+	return p
+}
+
+// الاختصارات (الديسكتوب + Start) + أي اختصار متثبت في شريط المهام بيشاور على البرنامج
 func makeShortcuts(target string) {
+	ico := writeIconFile()
 	ps := "$s=New-Object -ComObject WScript.Shell;foreach($p in @([Environment]::GetFolderPath('Desktop'),[Environment]::GetFolderPath('Programs'))){" +
 		"$l=$s.CreateShortcut((Join-Path $p '" + psq(shortcutName) + ".lnk'));$l.TargetPath='" + psq(target) + "';" +
-		"$l.WorkingDirectory='" + psq(filepath.Dir(target)) + "';$l.IconLocation='" + psq(target) + ",0';$l.Description='Actualat';$l.Save()}"
+		"$l.WorkingDirectory='" + psq(filepath.Dir(target)) + "';$l.IconLocation='" + psq(ico) + ",0';$l.Description='Actualat';$l.Save()};" +
+		"$t=Join-Path $env:APPDATA 'Microsoft\\Internet Explorer\\Quick Launch\\User Pinned\\TaskBar';" +
+		"if(Test-Path $t){Get-ChildItem $t -Filter *.lnk|ForEach-Object{$k=$s.CreateShortcut($_.FullName);" +
+		"if($k.TargetPath -ieq '" + psq(target) + "'){$k.IconLocation='" + psq(ico) + ",0';$k.Save()}}}"
 	hiddenCmd("powershell", "-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", ps).Run()
+	refreshIconCache()
 }
 
 const uninstKey = `HKCU\Software\Microsoft\Windows\CurrentVersion\Uninstall\Actualat`
@@ -105,13 +134,15 @@ func maybeInstall() bool {
 	if strings.EqualFold(filepath.Clean(self), filepath.Clean(target)) {
 		os.Remove(filepath.Join(installDir(), appName+".old.exe"))
 		go registerUninstall(target)
-		if _, err := os.Stat(filepath.Join(os.Getenv("USERPROFILE"), "Desktop", shortcutName+".lnk")); err != nil {
+		_, e1 := os.Stat(filepath.Join(os.Getenv("USERPROFILE"), "Desktop", shortcutName+".lnk"))
+		_, e2 := os.Stat(iconFile())
+		if e1 != nil || e2 != nil {
 			go makeShortcuts(target)
 		}
 		// بعد التحديث: نعيد عمل الاختصار عشان الأيقونة الجديدة تظهر
 		for _, a := range os.Args[1:] {
 			if a == "updated" {
-				go func() { makeShortcuts(target); refreshIconCache() }()
+				go makeShortcuts(target)
 			}
 		}
 		return false
@@ -127,7 +158,6 @@ func maybeInstall() bool {
 	}
 	makeShortcuts(target)
 	registerUninstall(target)
-	refreshIconCache()
 	exec.Command(target).Start()
 	return true
 }
