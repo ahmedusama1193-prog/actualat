@@ -1,6 +1,6 @@
 {
- "version": "1.2",
- "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/71cb7a9b310bf0e9f9da3d51f98c4ff8929a4b74/Actualat.exe",
- "sha256": "6f710076135823fc9b84076263df084292590a3af8ab3010e128d659187a3c36",
- "notes": "رقم العقد (Contract No) مايتكررش لأكتر من مقاول"
+ "version": "1.3",
+ "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/ca7359335378af669adb71c5fc2e90a68b954023/Actualat.exe",
+ "sha256": "e88ef6872b2db272a31ffef4ba839a5da90524d7eca05c6e50c4b8782ea481fe",
+ "notes": "تصميم مكوّن الداكن + تابة Dashboard لأكتر المواد والأعمال صرفاً + عربي/English"
 }
