@@ -13,14 +13,13 @@ set GOOS=windows& set GOARCH=amd64& set CGO_ENABLED=0
 go build -trimpath -ldflags "-s -w -H windowsgui" -o Actualat.exe .
 ```
 `Actualat.exe` هو نفسه ملف الـ Setup: أول ما يشتغل بينسخ نفسه لـ `%LOCALAPPDATA%\Programs\Actualat`،
-ويعمل اختصار على الديسكتوب وفي Start، ويسجل نفسه في تطبيقات ويندوز، وبعدين يفتح على شاشة إنشاء الحساب.
+ويعمل اختصار على الديسكتوب وفي Start، ويسجل نفسه في تطبيقات ويندوز، وبعدين يفتح.
 
 ## الملفات
 | الملف | فيه إيه |
 |---|---|
 | `main_windows.go` | الشباك، التثبيت، الاختصارات، إلغاء التثبيت، الأيقونة |
 | `server.go` | السيرفر المحلي والصفحات |
-| `auth.go` | الحسابات وتسجيل الدخول |
 | `store.go` / `ipc.go` / `codes.go` | تحويل المخازن والمستخلصات |
 | `db.go` / `analytics.go` | السجل والـ Dashboard |
 | `update.go` / `updkey.go` | التحديثات من GitHub |
