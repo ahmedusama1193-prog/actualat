@@ -1,0 +1,96 @@
+{
+ "v": 3,
+ "createdOnFiles": {
+  "v": 1,
+  "at": "2026-11-09T07:57:32Z"
+ },
+ "title": "لوجو اكشوالات",
+ "launch": {
+  "view": "canvas"
+ },
+ "pages": [],
+ "boards": {
+  "Main.dc.html": {
+   "x": 0,
+   "y": 0,
+   "w": 880,
+   "h": 560,
+   "title": "اتجاه A — الأعمدة"
+  },
+  "LogoB.dc.html": {
+   "x": 960,
+   "y": 0,
+   "w": 880,
+   "h": 560,
+   "title": "اتجاه B — الصندوق والمستند"
+  },
+  "LogoC.dc.html": {
+   "x": 0,
+   "y": 680,
+   "w": 880,
+   "h": 560,
+   "title": "اتجاه C — علامة المطابقة"
+  },
+  "LogoD.dc.html": {
+   "x": 960,
+   "y": 680,
+   "w": 880,
+   "h": 560,
+   "title": "اتجاه D — من الشيت للقالب"
+  },
+  "LogoE.dc.html": {
+   "x": 0,
+   "y": 1600,
+   "w": 880,
+   "h": 560,
+   "title": "المعتمد — A بالخطوط + Reem Kufi"
+  },
+  "LogoF.dc.html": {
+   "x": 960,
+   "y": 1600,
+   "w": 880,
+   "h": 560,
+   "title": "اتجاه F — A بالأعمدة والسهم (اقتراح)"
+  },
+  "LogoFonts.dc.html": {
+   "x": 0,
+   "y": 2560,
+   "w": 1840,
+   "h": 1000,
+   "title": "اختيار الخط — اللوجو المختار بـ 4 خطوط"
+  }
+ },
+ "order": [
+  "Main.dc.html",
+  "LogoB.dc.html",
+  "LogoC.dc.html",
+  "LogoD.dc.html",
+  "LogoE.dc.html",
+  "LogoF.dc.html",
+  "LogoFonts.dc.html"
+ ],
+ "notes": {
+  "t": {
+   "x": 0,
+   "y": -260,
+   "text": "اكشوالات — 4 اتجاهات للوجو",
+   "kind": "title1",
+   "maxW": 1840
+  },
+  "t2": {
+   "x": 0,
+   "y": 1330,
+   "text": "الاتجاه المختار: A بالخطوط + اقتراح",
+   "kind": "title1",
+   "maxW": 1840
+  },
+  "t3": {
+   "x": 0,
+   "y": 2290,
+   "text": "خط اسم اكشوالات — اختار رقم",
+   "kind": "title1",
+   "maxW": 1840
+  }
+ },
+ "designSystems": []
+}
