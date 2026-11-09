@@ -55,7 +55,7 @@ func uiCurrency() string {
 func settingsJSON() map[string]interface{} {
 	return map[string]interface{}{
 		"theme": uiTheme(), "lang": uiLang(), "currency": uiCurrency(), "user": userName(),
-		"dataDir": appDir(), "dbPath": dbPath(), "lastDir": getSetting("lastDir"), "version": appVersion,
+		"dataDir": appDir(), "dbPath": dbPath(), "lastDir": getSetting("lastDir"), "version": appVersion, "welcome": getSetting("welcome"),
 	}
 }
 
@@ -65,6 +65,7 @@ func hSettings(w http.ResponseWriter, r *http.Request) {
 			Theme    *string `json:"theme"`
 			Lang     *string `json:"lang"`
 			Currency *string `json:"currency"`
+			Welcome  *string `json:"welcome"`
 		}
 		json.NewDecoder(r.Body).Decode(&b)
 		if b.Theme != nil && (*b.Theme == "dark" || *b.Theme == "light") {
@@ -72,6 +73,9 @@ func hSettings(w http.ResponseWriter, r *http.Request) {
 			if titleHook != nil {
 				titleHook(*b.Theme == "dark")
 			}
+		}
+		if b.Welcome != nil && (*b.Welcome == "on" || *b.Welcome == "off") {
+			setSetting("welcome", *b.Welcome)
 		}
 		if b.Lang != nil && (*b.Lang == "ar" || *b.Lang == "en") {
 			setSetting("lang", *b.Lang)

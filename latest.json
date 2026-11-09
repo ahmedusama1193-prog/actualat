@@ -1,6 +1,6 @@
 {
- "version": "2.0",
- "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/e6440b7ea53f2565bca0dd33e3775965e80b0d78/Actualat.exe",
- "sha256": "f7339812ac342342ba4facbddfd0496741bdb9db3145a9a4441e162765fa91a3",
- "notes": "اتشال تسجيل الدخول والباسورد — البرنامج بيفتح على طول"
+ "version": "2.1",
+ "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/b692671286206fd68e16e987aaef6e7481018619/Actualat.exe",
+ "sha256": "ffc5b49f39d0839f8ad7a2536809e62e31b0eee9f164997bae9270b10a766232",
+ "notes": "شاشة بداية جديدة للبرنامج: اللوجو، حالة الشهر، ودخول بزرار واحد"
 }

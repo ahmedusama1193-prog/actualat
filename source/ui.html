@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <title>اكشوالات · Actualat</title>
 <link rel="icon" href="/assets/favicon.png">
-<link rel="stylesheet" href="/assets/base.css?v=20">
-<link rel="stylesheet" href="/assets/theme.css?v=20">
+<link rel="stylesheet" href="/assets/base.css?v=21">
+<link rel="stylesheet" href="/assets/theme.css?v=21">
 <script>window.__lang='ar';</script>
-<script src="/assets/i18n.js?v=20"></script>
+<script src="/assets/i18n.js?v=21"></script>
 <style>
   html,body{height:100%;overflow:hidden}
   body{display:flex;flex-direction:column;padding:0;background:var(--bg)}
@@ -149,7 +149,7 @@ async function openData(){ try{ await fetch('/api/open-folder',{method:'POST',bo
 (async()=>{
   try{ S=await (await fetch('/api/settings',{method:'POST',body:'{}'})).json(); }catch(e){}
   window.__lang=null; applySettings(S);
-  nav('dash');
+  const h=location.hash.slice(1); nav(['dash','ana','store','ipc','hist','set'].includes(h)?h:'dash');
   checkUpd();
 })();
 </script>

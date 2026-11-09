@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const appVersion = "2.0"
+const appVersion = "2.1"
 
 // مكان ملف التحديثات — بيتظبط لما نربط GitHub (فاضي = التحديث مقفول)
 var updateManifestURL = "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/main/latest.json"

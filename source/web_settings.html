@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>الإعدادات</title>
-<link rel="stylesheet" href="/assets/base.css?v=20">
-<link rel="stylesheet" href="/assets/theme.css?v=20">
-<script src="/assets/i18n.js?v=20"></script>
+<link rel="stylesheet" href="/assets/base.css?v=21">
+<link rel="stylesheet" href="/assets/theme.css?v=21">
+<script src="/assets/i18n.js?v=21"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();</script>
 <style>
   .set{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:16px;overflow:hidden}
@@ -41,6 +41,12 @@
       <div class="seg" id="curSeg"><button data-c="ج.م">ج.م</button><button data-c="ر.س">ر.س</button><button data-c="-">من غير</button></div></div>
   </div>
 
+  <h2>البداية</h2>
+  <div class="set">
+    <div class="it"><div><b>شاشة البداية</b><span class="d">الشاشة اللي فيها اللوجو وحالة الشهر، بتظهر أول ما البرنامج يفتح</span></div>
+      <div class="seg"><button id="wOn" onclick="save({welcome:'on'})">تظهر</button><button id="wOff" onclick="save({welcome:'off'})">ماتظهرش</button></div></div>
+  </div>
+
   <h2>التحديثات</h2>
   <div class="set">
     <div class="it"><div><b><span>الإصدار</span> <span id="ver" class="n"></span></b><span class="d" id="updD">البرنامج بيدوّر على تحديث لوحده كل ما تفتحه</span></div>
@@ -63,6 +69,7 @@ let S={};
 function err(m){ const e=$('err'); e.textContent=m||''; e.style.display=m?'block':'none'; }
 async function api(url,body){ const r=await fetch(url,{method:'POST',body:JSON.stringify(body||{}),headers:{'Content-Type':'application/json'}}); const j=await r.json(); if(!r.ok) throw new Error(j.error||'خطأ'); return j; }
 function paint(){
+  try{ $('wOn').classList.toggle('on',S.welcome!=='off'); $('wOff').classList.toggle('on',S.welcome==='off'); }catch(e){}
   $('thDark').classList.toggle('on',S.theme==='dark'); $('thLight').classList.toggle('on',S.theme==='light');
   $('lgAr').classList.toggle('on',S.lang!=='en'); $('lgEn').classList.toggle('on',S.lang==='en');
   const c=S.currency||'-';

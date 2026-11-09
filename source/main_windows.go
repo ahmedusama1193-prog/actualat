@@ -373,6 +373,6 @@ func main() {
 	darkTitle(hwnd, uiTheme() == "dark")
 	titleHook = func(dark bool) { w.Dispatch(func() { darkTitle(hwnd, dark) }) }
 	w.SetSize(1360, 900, webview2.HintNone)
-	w.Navigate(url)
+	w.Navigate(strings.TrimRight(url, "/") + startPath())
 	w.Run()
 }

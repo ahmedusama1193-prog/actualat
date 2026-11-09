@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>اكشوالات · Actualat</title>
+<link rel="icon" href="/assets/favicon.png">
+<link rel="stylesheet" href="/assets/base.css?v=21">
+<link rel="stylesheet" href="/assets/theme.css?v=21">
+<script>window.__lang='ar';</script>
+<script src="/assets/i18n.js?v=21"></script>
+<style>
+  html,body{height:100%;margin:0;overflow:hidden}
+  body{display:grid;grid-template-columns:minmax(380px,46%) 1fr;background:var(--bg)}
+  /* لوحة الهوية — غامقة دايمًا */
+  .brand{background:#121418;color:#f2f3f5;display:flex;flex-direction:column;justify-content:space-between;padding:48px 52px;position:relative;overflow:hidden;border-inline-end:1px solid #2a2e36}
+  .fan{position:absolute;inset-inline-end:-30px;bottom:-30px;width:min(520px,100%);pointer-events:none}
+  html[dir=ltr] .fan{transform:scaleX(-1)}
+  .fan path{stroke-dasharray:700;stroke-dashoffset:700;animation:draw .9s cubic-bezier(.16,1,.3,1) forwards}
+  .fan path:nth-child(2){animation-delay:.12s}.fan path:nth-child(3){animation-delay:.24s}
+  @keyframes draw{to{stroke-dashoffset:0}}
+  .bm{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:18px}
+  .bm img{width:96px;height:96px}
+  .bm b{display:block;font-family:"ReemKufi",sans-serif;font-size:64px;line-height:1.05}
+  .bm small{display:block;font-family:"Cinzel",serif;font-weight:700;font-size:15px;letter-spacing:7px;color:#2cc5b0;direction:ltr;margin-top:6px}
+  .top-b{position:relative;display:flex;flex-direction:column;gap:26px}
+  .brand p{position:relative;max-width:30ch;color:#a6abb5;font-size:16px;line-height:1.8;margin:0}
+  .brand .ver{position:relative;color:#6f747e;font-size:12.5px}
+  /* الجانب التاني */
+  .side{display:flex;flex-direction:column;padding:28px 56px 26px}
+  .top{display:flex;justify-content:flex-end;gap:8px}
+  .chip{background:none;border:1px solid var(--line2);color:var(--muted);font:inherit;font-size:13px;padding:6px 12px;cursor:pointer}
+  .chip:hover{color:var(--ink);border-color:var(--ink)}
+  .main{margin:auto 0;max-width:520px;width:100%}
+  .hi{font-family:"ReemKufi","IBM Plex Sans Arabic",sans-serif;font-size:44px;line-height:1.15;margin:0;position:relative;padding-bottom:18px}
+  .hi::after{content:"";position:absolute;bottom:0;inset-inline-start:0;width:64px;height:4px;background:var(--pri);transform:skewX(-24deg)}
+  .date{color:var(--muted);margin:16px 0 34px;font-size:15px}
+  .mon h2{font-size:14px;color:var(--muted);font-weight:600;margin:0 0 10px}
+  .rows{border-top:1px solid var(--line2);margin-bottom:34px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 0;border-bottom:1px solid var(--line)}
+  .row b{font-weight:600;font-size:15px}
+  .st{font-size:13.5px;white-space:nowrap;display:flex;align-items:center;gap:6px}
+  .st.ok{color:var(--ok);font-weight:600}
+  .st.no{color:var(--muted)}
+  .st.no::before{content:"";width:8px;height:8px;border:1.5px solid currentColor;border-radius:50%!important}
+  .go{width:100%;height:56px;font-size:18px!important;font-weight:700!important;display:flex!important;align-items:center;justify-content:center;gap:10px}
+  .go svg{width:20px;height:20px}
+  html[dir=rtl] .go svg{transform:scaleX(-1)}
+  .quick{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+  .quick .btn{height:44px}
+  .foot{display:flex;align-items:center;justify-content:space-between;color:var(--muted);font-size:13px}
+  .foot label{display:flex;align-items:center;gap:8px;cursor:pointer}
+  .foot input{width:16px;height:16px;margin:0}
+  .foot kbd{font:inherit;font-size:12px;border:1px solid var(--line2);padding:1px 6px}
+  @media (max-width:900px){body{grid-template-columns:1fr}.brand{display:none}}
+  @media (prefers-reduced-motion:reduce){.fan path{animation:none;stroke-dashoffset:0}}
+</style>
+</head>
+<body>
+<aside class="brand">
+  <svg class="fan" viewBox="0 0 620 460" fill="none" stroke-linecap="round"><path d="M20 450 610 40" stroke="#3a3e47" stroke-width="10"/><path d="M20 450 610 170" stroke="#2cc5b0" stroke-width="18"/><path d="M20 450 610 290" stroke="#3a3e47" stroke-width="10"/></svg>
+  <div class="top-b">
+    <div class="bm" translate="no"><img src="/assets/mark-dark.svg" alt=""><div><b>اكشوالات</b><small>ACTUALAT</small></div></div>
+    <p>صرف المخازن ومستخلصات المقاولين، جاهزين كقوالب PCS.</p>
+  </div>
+  <div class="ver" id="ver"></div>
+</aside>
+<section class="side">
+  <div class="top">
+    <button class="chip" id="lng" onclick="toggleLang()">English</button>
+    <button class="chip" id="thm" onclick="toggleTheme()">فاتح</button>
+  </div>
+  <div class="main">
+    <h1 class="hi">أهلاً، <span id="who" translate="no"></span></h1>
+    <div class="date" id="date"></div>
+    <div class="mon">
+      <h2 id="monT">الشهر ده</h2>
+      <div class="rows">
+        <div class="row"><b>صرف المخازن</b><span class="st" id="s-store"></span></div>
+        <div class="row"><b>المستخلص الحالي</b><span class="st" id="s-cur"></span></div>
+        <div class="row"><b>المستخلص التراكمي</b><span class="st" id="s-cum"></span></div>
+      </div>
+    </div>
+    <button class="btn go" id="go" onclick="enter('dash')"><span>ادخل البرنامج</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <div class="quick">
+      <button class="btn sec" onclick="enter('store')">تحويل صرف مخازن</button>
+      <button class="btn sec" onclick="enter('ipc')">تحويل مستخلصات</button>
+    </div>
+  </div>
+  <div class="foot">
+    <label><input type="checkbox" id="show" checked onchange="setShow(this.checked)"> <span>اعرض الشاشة دي لما البرنامج يفتح</span></label>
+    <span><kbd>Enter</kbd> <span>للدخول</span></span>
+  </div>
+</section>
+<script>
+const $=id=>document.getElementById(id);
+const T=s=>window.I18N?I18N.t(s):s;
+let S={};
+const AR_D=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+const AR_M=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+async function api(b){ return (await fetch('/api/settings',{method:'POST',body:JSON.stringify(b||{})})).json(); }
+function enter(t){ location.href='/#'+t; }
+document.addEventListener('keydown',e=>{ if(e.key==='Enter') enter('dash'); });
+function expand(p){ const [a,b]=p.split('_to_'); if(!b) return [a]; const o=[]; let [y,m]=a.split('-').map(Number); const [y2,m2]=b.split('-').map(Number);
+  while(y<y2||(y===y2&&m<=m2)){ o.push(`${y}-${String(m).padStart(2,'0')}`); m++; if(m>12){m=1;y++;} if(o.length>36) break; } return o; }
+function mark(id,done){ const e=$(id); e.className='st '+(done?'ok':'no'); e.innerHTML=done?`<i class="ic ok"></i>${T('خلص')}`:T('لسه'); }
+function paint(){
+  const en=S.lang==='en', d=new Date();
+  document.documentElement.dataset.theme=S.theme||'dark';
+  $('lng').textContent=en?'عربي':'English';
+  $('thm').textContent=T(S.theme==='light'?'داكن':'فاتح');
+  $('who').textContent=S.user||'';
+  $('ver').textContent=T('الإصدار')+' '+(S.version||'');
+  $('date').textContent=en? d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
+                          : `${AR_D[d.getDay()]} ${d.getDate()} ${AR_M[d.getMonth()]} ${d.getFullYear()}`;
+  $('monT').textContent=en? d.toLocaleDateString('en-GB',{month:'long',year:'numeric'}) : `${T('الشهر ده')} — ${AR_M[d.getMonth()]}`;
+  $('show').checked=S.welcome!=='off';
+}
+async function load(){
+  S=await api(); window.__lang=S.lang; paint(); try{ I18N.apply(S.lang); }catch(e){}
+  paint();
+  let runs=[]; try{ runs=(await (await fetch('/api/history/list',{method:'POST'})).json()).runs||[]; }catch(e){}
+  const d=new Date(), k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  mark('s-store',runs.some(r=>r.kind==='store'&&expand(r.period).includes(k)));
+  mark('s-cur',runs.some(r=>r.period==='current:'+k));
+  mark('s-cum',runs.some(r=>(r.period||'').startsWith('cumulative:'+k)));
+}
+async function toggleLang(){ S=await api({lang:S.lang==='en'?'ar':'en'}); window.__lang=S.lang; try{ I18N.apply(S.lang); }catch(e){} load(); }
+async function toggleTheme(){ S=await api({theme:S.theme==='light'?'dark':'light'}); paint(); }
+async function setShow(on){ S=await api({welcome:on?'on':'off'}); }
+load();
+</script>
+</body>
+</html>
