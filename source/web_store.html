@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>المستودعات</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="/assets/base.css?v=17">
+<link rel="stylesheet" href="/assets/theme.css?v=17">
+<script src="/assets/i18n.js?v=17"></script>
+<script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
+</head>
+<body>
+<main>
+  <div class="ptitle"><div><h1>المستودعات</h1><div class="sub">تحويل صرف المخازن لقالب PCS — الكميات والقيم زي ما هي في الشيت</div></div></div>
+
+  <!-- 1 -->
+  <div class="card">
+    <div class="step"><span class="num">01</span> اختار شيت المخازن</div>
+    <div id="drop" class="drop" onclick="$('f').click()">اسحب الملف هنا أو <b>اضغط للاختيار</b><br><small>xlsx / xlsm — أي شكل لشيت المخازن</small></div>
+    <input id="f" type="file" accept=".xlsx,.xlsm" class="hidden">
+    <div id="fileRow" class="row hidden" style="margin-top:12px">
+      <span id="fileName" translate="no"></span>
+      <span class="muted">· الشيت:</span><select id="sheetSel" translate="no" onchange="changeSheet()"></select>
+      <span class="muted">· صف العناوين:</span><input id="hdrRow" type="number" min="1" style="width:70px" onchange="changeSheet(true)">
+    </div>
+    <div id="err1" class="err"></div>
+  </div>
+
+  <!-- 2 -->
+  <div id="s2" class="card hidden">
+    <div class="step"><span class="num">02</span> ربط الأعمدة</div>
+    <div id="profileNote" class="small" style="margin:-4px 0 10px"></div>
+    <table class="map"><thead><tr><th>عمود PCS</th><th>العمود في شيت المخازن</th><th>مثال من أول صف</th></tr></thead><tbody id="mapBody"></tbody></table>
+    <div style="margin-top:14px"><b>Remarks</b> <span class="muted small">— اختار الأعمدة اللي تتكتب في الملاحظات (اختياري)</span></div>
+    <div id="remChips" translate="no" class="chips" style="margin-top:8px"></div>
+    <div class="row" style="margin-top:16px"><button class="btn" onclick="prepare()">التالي</button></div>
+    <div id="err2" class="err"></div>
+  </div>
+
+  <!-- 3 -->
+  <div id="s3" class="card hidden">
+    <div class="step"><span class="num">03</span> الشهور</div>
+    <div class="row" style="justify-content:space-between;margin-bottom:8px">
+      <span id="totalsNote" class="muted"></span>
+      <span><button class="link" onclick="pickAll(true)">اختار الكل</button> · <button class="link" onclick="pickAll(false)">إلغاء الكل</button></span>
+    </div>
+    <div id="months" class="months"></div>
+    <div id="nodateNote"></div>
+  </div>
+
+  <!-- 4 -->
+  <div id="s4" class="card hidden">
+    <div class="step"><span class="num">04</span> Task Code و Cost Code</div>
+    <div id="codesNote" class="small" style="margin-bottom:10px"></div>
+    <div class="row" style="margin-bottom:8px">
+      <span class="chip on" id="fltNeed" onclick="setFilter('need')">محتاج مراجعة</span>
+      <span class="chip" id="fltAll" onclick="setFilter('all')">الكل</span>
+      <input id="q" placeholder="بحث بالصنف أو الكود…" oninput="renderGroups()" style="padding:6px 10px;min-width:240px">
+      <span id="grpCount" class="muted small"></span>
+    </div>
+    <div class="scroll"><table><thead><tr><th>كود الصنف</th><th>الصنف</th><th>القسم</th><th>القيمة</th><th>Task Code</th><th>Cost Code</th><th>المصدر</th></tr></thead><tbody id="grpBody"></tbody></table></div>
+    <datalist id="dlTask" translate="no"></datalist><datalist id="dlCost" translate="no"></datalist>
+    <div class="muted small" style="margin-top:8px">الأكواد اللي بتختارها البرنامج بيفتكرها، والمرة الجاية نفس الصنف بياخد نفس الكود لوحده.</div>
+  </div>
+
+  <!-- 5 -->
+  <div id="s5" class="card hidden">
+    <div class="row"><button id="go" class="btn" onclick="convert()">تحويل</button></div>
+    <div id="err5" class="err"></div>
+    <div id="result" class="hidden" style="margin-top:16px">
+      <div id="checkLine" class="check"></div>
+      <table id="recon" style="max-width:720px"></table>
+      <div id="resNotes" class="small muted" style="margin:8px 0 14px"></div>
+      <div class="row">
+        <button class="btn" onclick="saveFile()">حفظ ملف PCS… (اختار المكان)</button>
+        <span id="saved" class="ok"></span>
+      </div>
+    </div>
+  </div>
+
+</main>
+<div id="busy" class="busy hidden">جاري الشغل…</div>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let info=null, prep=null, groups=[], filter='need', taskMap={}, costMap={};
+function busy(on){ $('busy').classList.toggle('hidden',!on); }
+function err(id,m){ const e=$(id); e.textContent=m||''; e.style.display=m?'block':'none'; }
+async function api(url,body,isForm){
+  const r=await fetch(url,{method:'POST',body:isForm?body:JSON.stringify(body||{}),headers:isForm?{}:{'Content-Type':'application/json'}});
+  const j=await r.json(); if(!r.ok) throw new Error(j.error||'خطأ'); return j;
+}
+function hide(...ids){ ids.forEach(i=>$(i).classList.add('hidden')); }
+function show(...ids){ ids.forEach(i=>$(i).classList.remove('hidden')); }
+
+// ---------- 1: file ----------
+const drop=$('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
+$('f').addEventListener('change',e=>{ if(e.target.files[0]) upload(e.target.files[0]); e.target.value=''; });
+
+async function upload(file){
+  err('err1'); hide('s2','s3','s4','s5','fileRow'); busy(true);
+  const fd=new FormData(); fd.append('file',file);
+  try{ showInfo(await api('/api/load',fd,true)); }catch(e){ err('err1',e.message); }
+  busy(false);
+}
+async function changeSheet(useRow){
+  busy(true); err('err1'); hide('s3','s4','s5');
+  try{ showInfo(await api('/api/sheet',{sheet:$('sheetSel').value, headerRow: useRow? (parseInt($('hdrRow').value)||1)-1 : -1})); }catch(e){ err('err1',e.message); }
+  busy(false);
+}
+function showInfo(j){
+  info=j;
+  $('fileName').innerHTML='<i class="ic ok"></i><b>'+esc(j.file)+'</b>';
+  $('sheetSel').innerHTML=j.sheets.map(s=>`<option ${s===j.sheet?'selected':''}>${esc(s)}</option>`).join('');
+  $('hdrRow').value=j.headerRow+1;
+  show('fileRow');
+  $('profileNote').innerHTML = j.fromProfile ? '<span class="ok"><i class="ic ok"></i>البرنامج عارف شكل الشيت ده من قبل وربط الأعمدة لوحده. راجعها ودوس التالي.</span>'
+    : '<span class="muted">البرنامج ربط الأعمدة اللي عرفها من أسمائها. اختار الباقي من القوايم. (هيفتكر الربط ده المرة الجاية)</span>';
+  const opts=['<option value="-1">— مش موجود —</option>'].concat(j.headers.map(h=>`<option value="${h.index}" translate="no">${esc(h.name)}</option>`)).join('');
+  $('mapBody').innerHTML=j.fields.map(f=>`<tr><td>${esc(f.label)} ${f.required?'<span class="req">*</span>':''}${f.hint?`<div class="muted small" style="font-weight:400">${esc(f.hint)}</div>`:''}</td>
+     <td><select data-k="${f.key}" onchange="sampleOf(this)">${opts}</select></td><td class="sample" translate="no" id="smp_${f.key}"></td></tr>`).join('');
+  document.querySelectorAll('#mapBody select').forEach(s=>{ s.value=String(j.mapping.cols[s.dataset.k]??-1); sampleOf(s); });
+  const rem=new Set(j.mapping.remarks||[]);
+  $('remChips').innerHTML=j.headers.map(h=>`<span class="chip ${rem.has(h.index)?'on':''}" data-i="${h.index}" onclick="this.classList.toggle('on')">${esc(h.name)}</span>`).join('');
+  show('s2');
+}
+function sampleOf(sel){
+  const i=parseInt(sel.value); const pos=info.headers.findIndex(h=>h.index===i);
+  const vals=pos<0?[]:info.preview.map(r=>r[pos]).filter(v=>v!=='').slice(0,2);
+  $('smp_'+sel.dataset.k).textContent=vals.join('  ·  ');
+}
+
+// ---------- 2 -> 3/4 ----------
+async function prepare(){
+  err('err2'); busy(true);
+  const cols={}; document.querySelectorAll('#mapBody select').forEach(s=>cols[s.dataset.k]=parseInt(s.value));
+  const remarks=[...document.querySelectorAll('#remChips .chip.on')].map(c=>parseInt(c.dataset.i));
+  try{
+    prep=await api('/api/prepare',{headerRow:info.headerRow,cols,remarks});
+    // months
+    $('totalsNote').textContent=`${fmt(prep.rows)} صنف في الشيت · إجمالي القيمة ${fmt(prep.amount)}`;
+    $('months').innerHTML=prep.months.map(m=>`<label class="m on"><input type="checkbox" value="${m.key}" checked onchange="this.parentNode.classList.toggle('on',this.checked)"><div><div class="l">${m.label}</div><div class="s">${fmt(m.rows)} بند · ${fmt(m.amount)}</div></div></label>`).join('');
+    const nd=prep.noDate||[]; const last=prep.months.length?prep.months[prep.months.length-1].key:null;
+    let ndDef=''; if(last){const [y,mo]=last.split('-').map(Number); ndDef=new Date(Date.UTC(y,mo,0)).toISOString().slice(0,10);}
+    const ndAmt=nd.reduce((a,x)=>a+(x.total||0),0);
+    $('nodateNote').innerHTML = nd.length ? `<div class="warnbox"><label><input type="checkbox" id="ndOn" checked> انقل كمان <b>${fmt(nd.length)}</b> بند تاريخهم فاضي أو مش مفهوم (قيمتهم ${fmt(ndAmt)}) بتاريخ: <input type="date" id="ndDate" value="${ndDef}"></label></div>` : '';
+    show('s3');
+    // codes
+    taskMap={}; costMap={};
+    prep.codes.task.forEach(c=>taskMap[c.code]=c.ar||c.en);
+    prep.codes.cost.forEach(c=>costMap[c.code]=c.ar||c.en);
+    $('dlTask').innerHTML=prep.codes.task.map(c=>`<option value="${esc(c.code)}">${esc(c.code+' — '+(c.ar||c.en))}</option>`).join('');
+    $('dlCost').innerHTML=prep.codes.cost.map(c=>`<option value="${esc(c.code)}">${esc(c.code+' — '+(c.ar||c.en))}</option>`).join('');
+    groups=prep.groups||[];
+    groups.forEach(g=>{ g.t=g.needTask?(g.task.code||''):null; g.c=g.needCost?(g.cost.code||''):null; });
+    if(groups.length){
+      const sug=groups.filter(isReview).length;
+      $('codesNote').innerHTML=`<b>${fmt(groups.length)}</b> صنف مالهمش Task Code أو Cost Code في الشيت، فالبرنامج حطلهم أكواد. `+
+        (sug?`<span style="color:var(--warn)"><b>${fmt(sug)}</b> منهم مقترحين ومحتاجين مراجعة منك (الصفوف الملونة).</span>`:'<span class="ok"><i class="ic ok"></i>كلهم من الذاكرة</span>')+
+        ` <span class="muted">قايمة الأكواد: ${prep.codesFrom==='file'?'من الملف نفسه':'آخر قايمة استخدمتها'} (${prep.codes.task.length} Task · ${prep.codes.cost.length} Cost)</span>`;
+      setFilter(sug?'need':'all'); show('s4');
+    } else hide('s4');
+    show('s5'); hide('result');
+    $('s3').scrollIntoView({behavior:'smooth'});
+  }catch(e){ err('err2',e.message); }
+  busy(false);
+}
+function isReview(g){ return (g.needTask && g.task.src!=='memory') || (g.needCost && g.cost.src!=='memory'); }
+function setFilter(f){ filter=f; $('fltNeed').classList.toggle('on',f==='need'); $('fltAll').classList.toggle('on',f==='all'); renderGroups(); }
+function tagOf(p){
+  if(!p) return '';
+  if(p.src==='memory') return '<span class="tag mem">ذاكرة</span>';
+  if(p.src==='suggest') return `<span class="tag sug">مقترح ${Math.round(p.score*100)}%</span>`;
+  return '<span class="tag none">مش لاقي</span>';
+}
+function renderGroups(){
+  const q=$('q').value.trim().toLowerCase();
+  const list=groups.filter(g=>(filter==='all'||isReview(g)) && (!q || (g.desc+' '+g.code+' '+g.section).toLowerCase().includes(q)));
+  $('grpCount').textContent=`${fmt(list.length)} صنف`;
+  const shown=list.slice(0,800);
+  $('grpBody').innerHTML=shown.map(g=>{
+    const i=groups.indexOf(g);
+    const low=(p,need)=>need && p.src!=='memory';
+    const cls=(g.needTask&&g.task.src==='none')||(g.needCost&&g.cost.src==='none')?'r':(low(g.task,g.needTask)||low(g.cost,g.needCost)?'y':'');
+    const cell=(need,val,dl,map,k)=> need ? `<input class="code" list="${dl}" value="${esc(val)}" data-i="${i}" data-k="${k}" oninput="setCode(this)"><span class="cdesc" translate="no">${esc(map[val]||'')}</span>` : '<span class="muted small">من الشيت</span>';
+    return `<tr class="${cls}"><td class="n" translate="no">${esc(g.code)}</td><td translate="no">${esc(g.desc)}</td><td class="small" translate="no">${esc(g.section)}</td><td class="n">${fmt(g.amount)}</td>
+      <td>${cell(g.needTask,g.t,'dlTask',taskMap,'t')}</td><td>${cell(g.needCost,g.c,'dlCost',costMap,'c')}</td>
+      <td>${g.needTask?tagOf(g.task):''} ${g.needCost&&(!g.needTask||g.cost.src!==g.task.src)?tagOf(g.cost):''}</td></tr>`;
+  }).join('') + (list.length>shown.length?`<tr><td colspan="7" class="muted">… استخدم البحث عشان تلاقي باقي الأصناف (${fmt(list.length-shown.length)})</td></tr>`:'');
+}
+function setCode(inp){
+  const g=groups[+inp.dataset.i]; const v=inp.value.trim();
+  g[inp.dataset.k]=v;
+  const map=inp.dataset.k==='t'?taskMap:costMap;
+  inp.nextElementSibling.textContent=map[v]||(v?'كود مش في القايمة':''); inp.nextElementSibling.style.color=(v&&!map[v])?'var(--warn)':'';
+  const p=inp.dataset.k==='t'?g.task:g.cost; p.src='memory'; // reviewed by user
+}
+function pickAll(v){ document.querySelectorAll('#months input').forEach(i=>{i.checked=v;i.parentNode.classList.toggle('on',v);}); }
+
+// ---------- 5 ----------
+async function convert(){
+  err('err5'); $('saved').textContent='';
+  const months=[...document.querySelectorAll('#months input:checked')].map(i=>i.value);
+  const body={months,codes:{}};
+  const on=$('ndOn'); if(on&&on.checked) body.noDateDate=$('ndDate').value;
+  groups.forEach(g=>{ body.codes[g.key]={task:g.t||'',cost:g.c||''}; });
+  $('go').disabled=true; busy(true);
+  try{
+    const j=await api('/api/convert',body);
+    $('checkLine').className='check '+(j.match?'good':'bad');
+    $('checkLine').innerHTML=j.match?'<i class="ic ok"></i>مطابق لشيت المخازن':'<i class="ic no"></i>في اختلاف — بلّغني';
+    $('recon').innerHTML=`<tr><th></th><th>عدد البنود</th><th>إجمالي الكمية</th><th>إجمالي القيمة</th></tr>
+      <tr><td>شيت المخازن</td><td class="n">${fmt(j.sheetItems)}</td><td class="n">${fmt(j.sheetQty)}</td><td class="n">${fmt(j.sheetAmount)}</td></tr>
+      <tr><td>ملف PCS</td><td class="n">${fmt(j.items)}</td><td class="n">${fmt(j.qty)}</td><td class="n">${fmt(j.amount)}</td></tr>`+
+      (j.byMonth||[]).map(m=>`<tr class="small"><td class="muted">${esc(m.label)}</td><td class="n">${fmt(m.rows)}</td><td class="n">${fmt(m.qty)}</td><td class="n">${fmt(m.amount)}</td></tr>`).join('');
+    const notes=[];
+    if(j.noRate) notes.push(`${fmt(j.noRate)} بند مالهمش سعر في الشيت — اتنقلوا بالكمية والقيمة زي ما هما.`);
+    if(j.noTask) notes.push(`${fmt(j.noTask)} بند من غير Task Code.`);
+    if(j.noCost) notes.push(`${fmt(j.noCost)} بند من غير Cost Code.`);
+    if(j.previous&&j.previous.length) notes.unshift(`<span style="color:var(--warn)"><i class="ic warn"></i>الفترة دي اتصدّرت قبل كده ${j.previous.length} مرة (آخر مرة ${esc(j.previous[0].created)}) — اتأكد إنك مش هتستوردها في PCS مرتين.</span>`);
+    $('resNotes').innerHTML=notes.join('<br>');
+    show('result'); $('result').scrollIntoView({behavior:'smooth'});
+  }catch(e){ err('err5',e.message); }
+  $('go').disabled=false; busy(false);
+}
+async function saveFile(){
+  try{ const j=await api('/api/save');
+    if(j.path){ $('saved').innerHTML='<i class="ic ok"></i>اتحفظ: '+esc(j.path)+' · <button class="link" onclick="openF('+JSON.stringify(j.path).replace(/"/g,'&quot;')+')">افتح الفولدر</button><br><span class="muted small">وملف المراجعة جنبه، واتسجل في السجل.</span>'+(j.dbNote?'<br><span style="color:var(--bad)">'+esc(j.dbNote)+'</span>':''); } }
+  catch(e){ $('saved').textContent=e.message; }
+}
+async function openF(p){ try{ await api('/api/open-folder',{path:p}); }catch(e){} }
+</script>
+</body>
+</html>

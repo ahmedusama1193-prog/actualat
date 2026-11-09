@@ -1,0 +1,5 @@
+package main
+
+// انسخ الملف ده باسم updkey.go وحط فيه مفتاح GitHub (fine-grained، Contents: Read-only)
+// متشفر: كل بايت = حرف المفتاح XOR (0x5a + i%7). من غير مفتاح التحديثات بتشتغل بس والريبو Public.
+var updKeyX = []byte{}

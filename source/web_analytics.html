@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Dashboard</title>
+<link rel="stylesheet" href="/assets/base.css?v=17">
+<link rel="stylesheet" href="/assets/theme.css?v=17">
+<script src="/assets/i18n.js?v=17"></script>
+<script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();</script>
+<style>
+  .filters{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:0 0 18px}
+  .filters label{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:13.5px}
+  .filters select{min-width:260px;padding:8px 10px}
+  .filters select.sm{min-width:80px}
+  .grid2{display:grid;grid-template-columns:1.25fr 1fr;gap:16px;margin-bottom:16px}
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px 20px;min-width:0}
+  .panel.full{margin-bottom:16px}
+  .ph{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 14px}
+  .ph h3{margin:0;font-size:16px;font-weight:600}
+  .ph .sub{color:var(--muted);font-size:12.5px}
+  .ph .seg button{padding:5px 12px;font-size:13px}
+  /* أعمدة أفقية */
+  .hb{display:flex;flex-direction:column;gap:2px}
+  .hr{display:grid;grid-template-columns:minmax(0,38%) 1fr auto;gap:12px;align-items:center;padding:6px 6px;border-radius:8px;cursor:default}
+  .hr:hover{background:var(--hover)}
+  .hr .lb{min-width:0}
+  .hr .lb div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13.5px}
+  .hr .lb small{display:block;color:var(--muted);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .hr .tr{height:14px;position:relative}
+  .hr .tr::before{content:"";position:absolute;inset-block:6px;inset-inline:0;background:var(--grid);border-radius:2px}
+  .hr .tr i{position:absolute;inset-block:0;inset-inline-start:0;border-start-end-radius:4px;border-end-end-radius:4px;min-width:3px}
+  .hr.rest .tr i{opacity:.45}
+  .hr .vl{direction:ltr;text-align:end;white-space:nowrap;font-size:13px;min-width:150px}
+  html[dir=ltr] .hr .vl{text-align:right}
+  .hr .vl b{font-weight:600}
+  .hr .vl span{color:var(--muted);font-size:12px;margin-inline-start:8px;display:inline-block;min-width:42px}
+  .rank{display:inline-block;min-width:20px;color:var(--muted);font-size:12px}
+  /* أعمدة رأسية للشهور */
+  .cols{display:flex;align-items:flex-end;gap:10px;height:190px;padding:6px 4px 0;border-bottom:1px solid var(--grid)}
+  .cl{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;min-width:0}
+  .cl i{display:block;width:100%;max-width:24px;border-radius:4px 4px 0 0;min-height:3px}
+  .cl .cv{font-size:11.5px;color:var(--muted);direction:ltr;margin-bottom:4px;white-space:nowrap}
+  .cll{display:flex;gap:10px;padding:6px 4px 0}
+  .cll span{flex:1;text-align:center;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tip{position:fixed;pointer-events:none;z-index:20;background:var(--card2);border:1px solid var(--line2);border-radius:10px;padding:10px 12px;font-size:12.5px;box-shadow:0 8px 24px rgba(0,0,0,.25);max-width:360px}
+  .tip b{display:block;font-size:13.5px;margin-bottom:4px}
+  .tip .r{display:flex;justify-content:space-between;gap:18px;color:var(--muted)} .tip .r em{font-style:normal;color:var(--ink);direction:ltr}
+  .ttbl td,.ttbl th{padding:8px 10px}
+  .note{color:var(--muted);font-size:12.5px;margin-top:10px}
+  .emptyBox{background:var(--card);border:1px dashed var(--line2);border-radius:16px;padding:46px 20px;text-align:center;color:var(--muted)}
+  .emptyBox b{display:block;color:var(--ink);font-size:17px;margin-bottom:6px}
+</style>
+</head>
+<body>
+<main>
+  <div class="ptitle">
+    <div><h1>Dashboard</h1><div class="sub">فين الفلوس اتصرفت — من ملفات PCS المحفوظة في السجل</div></div>
+    <div class="seg" id="viewSeg"><button id="vChart" class="on" onclick="setView('chart')">رسم</button><button id="vTable" onclick="setView('table')">جدول</button></div>
+  </div>
+  <div class="utabs">
+    <button class="utab on" id="kStore" onclick="setKind('store')">المستودعات</button>
+    <button class="utab" id="kIpc" onclick="setKind('ipc')">المستخلصات</button>
+  </div>
+  <div class="filters" id="filters">
+    <label>الفترة <select id="runSel" onchange="load()"></select></label>
+    <label>أعلى <select id="topSel" class="sm" onchange="load()"><option>10</option><option>15</option><option>20</option></select></label>
+  </div>
+
+  <div id="emptyAll" class="emptyBox hidden"><b>لسه مفيش ملفات محفوظة هنا</b><span id="emptyTxt">الرسومات بتتعمل من ملفات PCS اللي اتحفظت. حوّل شيت صرف مخازن واحفظه، وهتلاقي هنا أكتر المواد صرفًا بالفلوس وتوزيعها على الشهور.</span><br><br><button class="btn" id="emptyGo" onclick="goKind()">روح للمستودعات</button></div>
+
+  <div id="content">
+    <div class="kpis strip">
+      <div class="kpi red"><div class="k">إجمالي القيمة</div><div class="v" id="kTot">—</div><div class="s" id="kTotS"></div></div>
+      <div class="kpi"><div class="k" id="kCntL">عدد الأصناف</div><div class="v" id="kCnt">—</div><div class="s" id="kCntS"></div></div>
+      <div class="kpi"><div class="k" id="kTopL">أكبر صنف</div><div class="v" translate="no" id="kTop" style="direction:inherit;unicode-bidi:normal">—</div><div class="s" id="kTopS"></div></div>
+      <div class="kpi"><div class="k" id="kShareL">نصيب أعلى 10</div><div class="v" id="kShare">—</div><div class="s">من إجمالي القيمة</div></div>
+    </div>
+
+    <div class="grid2">
+      <div class="panel">
+        <div class="ph"><div><h3 id="mainT">أكتر المواد صرفاً</h3><div class="sub" id="mainS">بالقيمة المالية</div></div>
+          <div class="seg hidden" id="ipcSeg"><button data-g="byTrade" class="on">الأعمال</button><button data-g="byName">البنود</button><button data-g="byContractor">المقاولين</button></div></div>
+        <div id="mainC"></div>
+      </div>
+      <div class="panel">
+        <div class="ph"><div><h3>حسب Task Code</h3><div class="sub">توزيع القيمة على بنود PCS</div></div></div>
+        <div id="taskC"></div>
+      </div>
+    </div>
+    <div class="panel full" id="monP">
+      <div class="ph"><div><h3>حسب الشهر</h3><div class="sub" id="monS">قيمة كل شهر في الفترة اللي اخترتها</div></div></div>
+      <div id="monC"></div>
+    </div>
+  </div>
+  <div id="err" class="err"></div>
+</main>
+<div id="tip" class="tip hidden"></div>
+<script>
+const $=id=>document.getElementById(id);
+const T=s=>window.I18N?I18N.t(s):s;
+const cur=()=>{try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}};
+const fmt=n=>Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmt0=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:0});
+const cmp=n=>{const a=Math.abs(n); if(a>=1e6) return (n/1e6).toFixed(a>=1e7?1:2)+'M'; if(a>=1e3) return (n/1e3).toFixed(a>=1e4?0:1)+'K'; return fmt0(n);};
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const isEn=()=>{try{return (parent.__lang||'ar')==='en'}catch(e){return false}};
+let kind='store', view='chart', D=null, ipcGroup='byTrade';
+const sel={store:'all',ipc:''};
+function err(m){ const e=$('err'); e.textContent=m||''; e.style.display=m?'block':'none'; }
+function money(n){ const c=cur(); return fmt(n)+(c?' '+c:''); }
+function setKind(k){ kind=k; $('kStore').classList.toggle('on',k==='store'); $('kIpc').classList.toggle('on',k==='ipc'); load(true); }
+function setView(v){ view=v; $('vChart').classList.toggle('on',v==='chart'); $('vTable').classList.toggle('on',v==='table'); render(); }
+function goKind(){ try{ parent.nav(kind); }catch(e){} }
+document.querySelectorAll('#ipcSeg button').forEach(b=>b.onclick=()=>{ ipcGroup=b.dataset.g; document.querySelectorAll('#ipcSeg button').forEach(x=>x.classList.toggle('on',x===b)); render(); });
+
+async function load(kindChanged){
+  err();
+  if(!kindChanged && $('runSel').value) sel[kind]=$('runSel').value;
+  const q=new URLSearchParams({kind,top:$('topSel').value,run:sel[kind]||''});
+  try{
+    const r=await fetch('/api/analytics?'+q); const j=await r.json(); if(!r.ok) throw new Error(j.error||'خطأ');
+    D=j;
+    const opts=j.options||[];
+    $('emptyAll').classList.toggle('hidden',opts.length>0); $('content').classList.toggle('hidden',!opts.length); $('filters').classList.toggle('hidden',!opts.length);
+    if(!opts.length){
+      $('emptyTxt').textContent=kind==='store'?'الرسومات بتتعمل من ملفات PCS اللي اتحفظت. حوّل شيت صرف مخازن واحفظه، وهتلاقي هنا أكتر المواد صرفًا بالفلوس وتوزيعها على الشهور.':'الرسومات بتتعمل من ملفات PCS اللي اتحفظت. حوّل الكوست ريبورت واحفظ المستخلص، وهتلاقي هنا أكتر البنود والمقاولين صرفًا.';
+      $('emptyGo').textContent=kind==='store'?'روح للمستودعات':'روح للمستخلصات'; return;
+    }
+    let html='';
+    if(kind==='store') html+=`<option value="all">${esc(T('كل الشهور المحفوظة'))}</option>`;
+    html+=opts.map(o=>`<option value="${o.id}">${esc(T(o.label))} — ${esc(o.created)}</option>`).join('');
+    $('runSel').innerHTML=html; $('runSel').value=j.selected; sel[kind]=j.selected;
+    render();
+  }catch(e){ err(e.message); }
+}
+function hbars(list,color,opt={}){
+  if(!list||!list.length) return `<div class="empty">${esc(T('مفيش بيانات'))}</div>`;
+  const real=list.filter(b=>b.key!=='__rest');
+  const mx=Math.max(1,...real.map(b=>Math.abs(b.amount)));
+  return '<div class="hb">'+list.map((b,i)=>{
+    const rest=b.key==='__rest', w=Math.min(100,Math.abs(b.amount)/mx*100);
+    const sub=opt.sub?opt.sub(b):b.sub;
+    const lbl=rest?T(b.label):b.label;
+    return `<div class="hr ${rest?'rest':''}" data-i="${i}" data-l="${opt.id}">
+      <div class="lb" translate="no"><div title="${esc(lbl)}">${rest?'':`<span class="rank">${i+1}</span>`}${esc(lbl)}</div>${sub?`<small title="${esc(sub)}">${esc(sub)}</small>`:''}</div>
+      <div class="tr"><i style="width:${Math.max(1,w)}%;background:${color}"></i></div>
+      <div class="vl"><b>${cmp(b.amount)}</b><span>${b.share.toFixed(1)}%</span></div></div>`;}).join('')+'</div>';
+}
+function cols(list,color){
+  if(!list||!list.length) return `<div class="empty">${esc(T('مفيش بيانات'))}</div>`;
+  const mx=Math.max(1,...list.map(b=>Math.abs(b.amount)));
+  return `<div class="cols">${list.map((b,i)=>`<div class="cl" data-i="${i}" data-l="mon"><span class="cv">${cmp(b.amount)}</span><i style="height:${Math.max(2,Math.abs(b.amount)/mx*160)}px;background:${color}"></i></div>`).join('')}</div>
+    <div class="cll">${list.map(b=>`<span>${esc(T(b.label))}</span>`).join('')}</div>`;
+}
+function table(list,cols){
+  if(!list||!list.length) return `<div class="empty">${esc(T('مفيش بيانات'))}</div>`;
+  return `<div class="scroll" style="max-height:440px"><table class="ttbl"><thead><tr><th>#</th>${cols.map(c=>`<th>${esc(T(c[0]))}</th>`).join('')}<th>${esc(T('القيمة'))}</th><th>%</th></tr></thead><tbody>${
+    list.map((b,i)=>`<tr><td class="muted">${b.key==='__rest'?'':i+1}</td>${cols.map(c=>`<td translate="no">${esc(c[1](b)??'')}</td>`).join('')}<td class="n">${fmt(b.amount)}</td><td class="n">${b.share.toFixed(1)}%</td></tr>`).join('')}</tbody></table></div>`;
+}
+const LISTS={};
+function taskSub(b){ return isEn()?(b.en||b.sub):b.sub; }
+function render(){
+  if(!D||!(D.options||[]).length) return;
+  const st=kind==='store', color=st?'var(--st)':'var(--ip)';
+  const top=+$('topSel').value;
+  $('ipcSeg').classList.toggle('hidden',st);
+  const g=st?'byName':ipcGroup;
+  const main=D[g]||[];
+  const mt={byName:st?'أكتر المواد صرفاً':'أكتر البنود صرفاً',byTrade:'أكتر الأعمال صرفاً',byContractor:'أكتر المقاولين صرفاً'}[g];
+  $('mainT').textContent=T(mt);
+  $('mainS').textContent=T(st?'بالقيمة المالية — كل صنف متجمع من كل سطوره':(((D.options||[]).find(o=>String(o.id)===String(D.selected))||{}).mode==='current'?'قيمة الشهر':'بالقيمة المالية في المستخلص اللي اخترته'));
+  // KPIs
+  {const c=cur(); $('kTot').innerHTML=fmt(D.total)+(c?`<span class="cur">${esc(T(c))}</span>`:'');}
+  $('kTotS').textContent=T(D.label)+' · '+fmt0(D.lines)+' '+T('سطر');
+  const cnt=st?D.distinct:(g==='byTrade'?D.trades:g==='byContractor'?D.contractors:D.distinct);
+  $('kCntL').textContent=T(st?'عدد الأصناف':g==='byTrade'?'عدد الأعمال':g==='byContractor'?'عدد المقاولين':'عدد البنود');
+  $('kCnt').textContent=fmt0(cnt||0);
+  $('kCntS').textContent=T(st?'صنف مختلف اتصرف':'في الفترة دي');
+  const first=main.find(b=>b.key!=='__rest');
+  $('kTopL').textContent=T(st?'أكبر صنف':g==='byTrade'?'أكبر أعمال':g==='byContractor'?'أكبر مقاول':'أكبر بند');
+  $('kTop').textContent=first?first.label:'—'; $('kTop').title=first?first.label:'';
+  $('kTopS').textContent=first?`${cmp(first.amount)} · ${first.share.toFixed(1)}%`:'';
+  const topShare=main.filter(b=>b.key!=='__rest').reduce((a,b)=>a+b.share,0);
+  $('kShareL').textContent=T('نصيب أعلى')+' '+Math.min(top,main.filter(b=>b.key!=='__rest').length);
+  $('kShare').textContent=topShare.toFixed(1)+'%';
+  LISTS.main=main; LISTS.task=D.byTask||[]; LISTS.mon=D.byMonth||[];
+  if(view==='chart'){
+    $('mainC').innerHTML=hbars(main,color,{id:'main',sub:b=>isEn()&&b.subEn?b.subEn:b.sub});
+    $('taskC').innerHTML=hbars(D.byTask,color,{id:'task',sub:taskSub});
+  }else{
+    const mc=st?[['الصنف',b=>b.label],['Task Code',b=>b.sub],['الكمية',b=>b.qty?fmt(b.qty)+' '+(b.unit||''):'']]
+      :g==='byName'?[['البند',b=>b.label],['الأعمال',b=>b.sub]]:[[g==='byTrade'?'الأعمال':'المقاول',b=>b.label],['السطور',b=>b.lines]];
+    $('mainC').innerHTML=table(main,mc);
+    $('taskC').innerHTML=table(D.byTask,[['Task Code',b=>b.label],['الوصف',taskSub]]);
+  }
+  const ms=D.byMonth||[];
+  $('monP').classList.toggle('hidden',ms.length<2);
+  $('monC').innerHTML=view==='chart'?cols(ms,color):table(ms,[['الشهر',b=>T(b.label)],['السطور',b=>b.lines]]);
+  bindTips();
+}
+// tooltip
+const tip=$('tip');
+function bindTips(){
+  document.querySelectorAll('[data-l]').forEach(el=>{
+    el.onmousemove=e=>{
+      const b=(LISTS[el.dataset.l]||[])[+el.dataset.i]; if(!b) return;
+      const lbl=b.key==='__rest'?T(b.label):(el.dataset.l==='mon'?T(b.label):b.label);
+      const sub=el.dataset.l==='task'?taskSub(b):(isEn()&&b.subEn?b.subEn:b.sub);
+      tip.innerHTML=`<b translate="no">${esc(lbl)}</b>${sub?`<div class="muted" translate="no" style="margin-bottom:6px">${esc(sub)}</div>`:''}
+        <div class="r">${esc(T('القيمة'))}<em>${esc(money(b.amount))}</em></div>
+        <div class="r">${esc(T('النسبة'))}<em>${b.share.toFixed(1)}%</em></div>
+        ${b.qty?`<div class="r">${esc(T('الكمية'))}<em>${fmt(b.qty)} ${esc(b.unit||'')}</em></div>`:''}
+        <div class="r">${esc(T('السطور'))}<em>${fmt0(b.lines)}</em></div>`;
+      tip.classList.remove('hidden');
+      const w=tip.offsetWidth,h=tip.offsetHeight; let x=e.clientX+14,y=e.clientY+14;
+      if(x+w>innerWidth-8) x=e.clientX-w-14; if(y+h>innerHeight-8) y=e.clientY-h-14;
+      tip.style.left=x+'px'; tip.style.top=y+'px';
+    };
+    el.onmouseleave=()=>tip.classList.add('hidden');
+  });
+}
+window.addEventListener('focus',()=>load());
+load(true);
+</script>
+</body>
+</html>

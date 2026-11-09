@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<title>اكشوالات · Actualat</title>
+<link rel="icon" href="/assets/favicon.png">
+<link rel="stylesheet" href="/assets/base.css?v=17">
+<link rel="stylesheet" href="/assets/theme.css?v=17">
+<script>window.__lang='ar';</script>
+<script src="/assets/i18n.js?v=17"></script>
+<style>
+  html,body{height:100%;overflow:hidden}
+  body{display:flex;flex-direction:column;padding:0;background:var(--bg)}
+  /* الشريط العلوي: دايمًا غامق في الوضعين — ده توقيع اكشوالات */
+  .top{--tb:#121418;--tl:#2a2e36;--tm:#8d929c;--tx:#f2f3f5;flex:none;height:64px;background:var(--tb);color:var(--tx);display:flex;align-items:stretch;padding:0 22px;gap:6px;border-bottom:1px solid var(--tl)}
+  .logo{display:flex;align-items:center;gap:10px;padding-inline-end:22px;margin-inline-end:10px;border-inline-end:1px solid var(--tl)}
+  .logo img{width:38px;height:38px;flex:none}
+  .logo .wm{display:flex;flex-direction:column;line-height:1;align-items:flex-start}
+  .logo .wm b{font-family:"ReemKufi",sans-serif;font-weight:700;font-size:25px;color:var(--tx);line-height:1.15}
+  .logo .wm small{font-family:"Cinzel",serif;font-weight:700;font-size:8.5px;letter-spacing:3.6px;color:#ff4a50;direction:ltr}
+  nav{display:flex;align-items:stretch;gap:2px}
+  .nv{position:relative;display:flex;align-items:center;padding:0 16px;background:none;border:none;color:var(--tm);font-family:inherit;font-size:15px;font-weight:500;cursor:pointer;transition:color .18s cubic-bezier(.16,1,.3,1)}
+  .nv:hover{color:var(--tx)}
+  .nv.on{color:var(--tx);font-weight:700}
+  /* المؤشر المايل: نفس ميل رجل حرف A في اللوجو */
+  .nv::after{content:"";position:absolute;bottom:-1px;inset-inline:12px;height:4px;background:#e5262e;transform:skewX(-24deg) scaleX(0);transform-origin:center;transition:transform .22s cubic-bezier(.16,1,.3,1)}
+  .nv.on::after{transform:skewX(-24deg) scaleX(1)}
+  .nv:focus-visible{outline:2px solid #ff4a50!important;outline-offset:-6px}
+  .grow{flex:1}
+  .tools{display:flex;align-items:center;gap:6px}
+  .tb{display:flex;align-items:center;gap:8px;height:36px;padding:0 12px;background:none;border:1px solid transparent;color:var(--tm);font-family:inherit;font-size:13px;cursor:pointer;transition:color .18s,border-color .18s}
+  .tb:hover{color:var(--tx);border-color:var(--tl)}
+  .tb svg{width:19px;height:19px;flex:none}
+  .tb.on{color:var(--tx)}
+  .tb.on svg{color:#ff4a50}
+  .tb.new{color:#fff;background:#e5262e;border-color:#e5262e}
+  .tb.new:hover{background:#c81e25}
+  .who{color:var(--tx);font-size:13px;font-weight:600;padding:0 6px 0 10px}
+  .tsep{width:1px;height:22px;background:var(--tl);margin:0 4px}
+  /* المحتوى */
+  .mainp{flex:1;min-height:0;display:flex;flex-direction:column;background:var(--bg)}
+  .frames{flex:1;position:relative}
+  .frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
+  .status{display:flex;align-items:center;gap:18px;border-top:1px solid var(--line2);padding:9px 22px;color:var(--muted);font-size:12.5px;background:var(--bg)}
+  .status .path{display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0;background:none;border:none;color:inherit;font:inherit;padding:0}
+  .status .path span{direction:ltr;unicode-bidi:plaintext;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:440px}
+  .status .path:hover{color:var(--ink)}
+  .status svg{width:18px;height:18px;flex:none}
+  .conn{display:flex;align-items:center;gap:7px;color:var(--ok);font-weight:600}
+  .conn.off{color:var(--muted);font-weight:400}
+  .sep{width:1px;height:16px;background:var(--line2)}
+  .busy{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;z-index:10}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="logo" translate="no" title="المستودعات والمستخلصات ← قوالب PCS"><img src="/assets/mark-dark.svg" alt=""><div class="wm"><b>اكشوالات</b><small>ACTUALAT</small></div></div>
+  <nav>
+    <button class="nv" id="n-dash" onclick="nav('dash')">الإقفال الشهري</button>
+    <button class="nv" id="n-ana" onclick="nav('ana')">Dashboard</button>
+    <button class="nv" id="n-store" onclick="nav('store')">المستودعات</button>
+    <button class="nv" id="n-ipc" onclick="nav('ipc')">المستخلصات</button>
+    <button class="nv" id="n-hist" onclick="nav('hist')">السجل</button>
+  </nav>
+  <div class="grow"></div>
+  <div class="tools">
+    <button class="tb" id="upcard" onclick="upClick()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.5A8 8 0 0 0 6.3 6.3L4 8.5M4 4v4.5h4.5M4 12.5a8 8 0 0 0 13.7 5.2L20 15.5M20 20v-4.5h-4.5"/></svg><span id="upT">بيدوّر…</span></button>
+    <span class="tsep"></span>
+    <button class="tb" id="lngBtn" onclick="toggleLang()" title="Language / اللغة">EN</button>
+    <span class="who" id="who" translate="no"></span>
+    <button class="tb" id="n-set" onclick="nav('set')" title="الإعدادات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>الإعدادات</span></button>
+    <button class="tb" onclick="logout()" title="تسجيل الخروج"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg><span>خروج</span></button>
+  </div>
+</header>
+
+<section class="mainp">
+  <div class="frames">
+    <iframe id="f-dash"></iframe>
+    <iframe id="f-ana" class="hidden"></iframe>
+    <iframe id="f-store" class="hidden"></iframe>
+    <iframe id="f-ipc" class="hidden"></iframe>
+    <iframe id="f-hist" class="hidden"></iframe>
+    <iframe id="f-set" class="hidden"></iframe>
+  </div>
+  <div class="status">
+    <button class="path" onclick="openData()" title="افتح فولدر البيانات">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
+      <span id="dpath"></span>
+    </button>
+    <div class="grow"></div>
+    <div class="conn off" id="conn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m7.5 12.3 3 3 6-6.3" fill="none" stroke="#0f1114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="connT">بيتأكد من الاتصال…</span></div>
+    <span class="sep"></span>
+    <span id="ver">الإصدار</span>
+  </div>
+</section>
+<div id="busy" class="busy hidden" style="background:rgba(10,11,14,.78);color:#fff">جاري تنزيل التحديث… البرنامج هيقفل ويفتح تاني لوحده</div>
+<script>
+const $=id=>document.getElementById(id);
+const PAGES={dash:'/dashboard.html',ana:'/analytics.html',store:'/store.html',ipc:'/ipc.html',hist:'/history.html',set:'/settings.html'};
+const RELOAD=['dash','ana','hist'];
+window.__theme='dark'; window.__cur='ج.م'; window.__user='';
+let S={}, upd=null, current='';
+function nav(t){
+  if(!PAGES[t]) return;
+  current=t;
+  for(const k in PAGES){ $('n-'+k).classList.toggle('on',k===t); $('f-'+k).classList.toggle('hidden',k!==t); }
+  const f=$('f-'+t);
+  if(!f.getAttribute('src')) f.src=PAGES[t];
+  else if(RELOAD.includes(t)){ try{ f.contentWindow.load(); }catch(e){} }
+}
+function applySettings(s){
+  const oldLang=window.__lang;
+  S=s||S; window.__theme=S.theme||'dark'; window.__cur=S.currency??'ج.م'; window.__user=S.user||''; window.__lang=S.lang||'ar';
+  document.documentElement.dataset.theme=__theme;
+  for(const k in PAGES){ try{ $('f-'+k).contentDocument.documentElement.dataset.theme=__theme; }catch(e){} }
+  $('lngBtn').textContent=__lang==='en'?'عربي':'EN';
+  if(oldLang!==__lang){
+    try{ I18N.apply(__lang); }catch(e){}
+    for(const k in PAGES){ try{ const w=$('f-'+k).contentWindow; if(w.I18N) w.I18N.apply(__lang); }catch(e){} }
+    if(oldLang) { if(upd) showUpdate(upd); else checkUpd(); }
+  }
+  RELOAD.forEach(k=>{ try{ if($('f-'+k).getAttribute('src')) $('f-'+k).contentWindow.load(); }catch(e){} });
+  $('who').textContent=S.user||''; $('dpath').textContent=S.dataDir||''; $('ver').textContent=I18N.t('الإصدار')+' '+(S.version||'');
+}
+async function toggleLang(){
+  try{ const s=await (await fetch('/api/settings',{method:'POST',body:JSON.stringify({lang:__lang==='en'?'ar':'en'})})).json(); applySettings(s);
+    try{ $('f-set').contentWindow.load(); }catch(e){} }catch(e){}
+}
+function showUpdate(u){
+  upd=u; $('upcard').classList.add('new'); $('upT').textContent=I18N.t('تحديث جديد')+' '+u.version+' — '+I18N.t('اضغط');
+  $('upcard').title=u.notes||'';
+}
+function setConn(ok){ $('conn').classList.toggle('off',!ok); $('connT').textContent=ok?'متصل بالتحديثات':'من غير نت — البرنامج شغال عادي'; }
+async function upClick(){
+  if(upd) return doUpdate();
+  $('upT').textContent='بيدوّر…'; await checkUpd();
+}
+async function checkUpd(){
+  try{ const u=await (await fetch('/api/update/check')).json();
+    setConn(!u.error);
+    if(u.available) showUpdate(u); else $('upT').textContent=u.error?'مقدرش يوصل':I18N.t('محدّث')+' · '+(u.current||S.version||'');
+  }catch(e){ setConn(false); $('upT').textContent='مقدرش يوصل'; }
+}
+async function doUpdate(){
+  $('busy').classList.remove('hidden');
+  try{ const r=await fetch('/api/update/apply',{method:'POST'}); const j=await r.json(); if(!r.ok) throw new Error(j.error||'خطأ'); }
+  catch(e){ $('busy').classList.add('hidden'); alert(I18N.t(e.message)); }
+}
+async function logout(){ try{ await fetch('/api/auth/logout',{method:'POST'}); }catch(e){} location.href='/login.html'; }
+async function openData(){ try{ await fetch('/api/open-folder',{method:'POST',body:JSON.stringify({path:S.dataDir||''})}); }catch(e){} }
+(async()=>{
+  try{ S=await (await fetch('/api/settings',{method:'POST',body:'{}'})).json(); }catch(e){}
+  window.__lang=null; applySettings(S);
+  nav('dash');
+  checkUpd();
+})();
+</script>
+</body>
+</html>

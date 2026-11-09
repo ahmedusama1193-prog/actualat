@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>الرئيسية</title>
+<link rel="stylesheet" href="/assets/base.css?v=17">
+<link rel="stylesheet" href="/assets/theme.css?v=17">
+<script src="/assets/i18n.js?v=17"></script>
+<script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();</script>
+<style>
+  .hdr-acts{display:flex;gap:10px;flex-wrap:wrap}
+  .close{width:100%;border-collapse:collapse}
+  .close th{text-align:start;font-size:13px;padding:10px 14px!important}
+  .close td{padding:14px!important;vertical-align:top;border-bottom:1px solid var(--line)!important}
+  .close td.mon{font-weight:600;white-space:nowrap;width:170px}
+  .close td.mon small{display:block;color:var(--muted);font-weight:400;font-size:12px;margin-top:2px}
+  .cell b{display:block;font-weight:600;direction:ltr;text-align:start;unicode-bidi:plaintext;font-size:15px}
+  html[dir=ltr] .cell b{text-align:left}
+  .cell small{color:var(--muted);font-size:12px}
+  .cell.todo{color:var(--muted)}
+  .todo-btn{background:none;border:1px solid var(--line2);color:var(--ink);font:inherit;font-size:13px;padding:5px 12px;cursor:pointer;margin-top:4px}
+  .todo-btn:hover{border-color:var(--pri);color:var(--pri)}
+  .stat-ok{color:var(--ok);font-weight:600;white-space:nowrap}
+  .stat-miss{color:var(--warn);font-weight:600;white-space:nowrap}
+  .cur-row td.mon small{color:var(--pri);font-weight:600}
+  .sect{margin-top:34px}
+  .sect h2{font-size:17px;margin:0 0 4px}
+  .sect .sub{color:var(--muted);font-size:13px;margin-bottom:14px}
+  .recent td{padding:11px 14px!important}
+  .recent td.amt{text-align:end}
+  .empty-teach{border:1px solid var(--line2);padding:26px 28px;max-width:720px}
+  .empty-teach h2{margin:0 0 8px;font-size:18px}
+  .empty-teach ol{margin:10px 0 18px;padding-inline-start:20px;color:var(--muted);line-height:1.9}
+  .empty-teach ol b{color:var(--ink);font-weight:600}
+</style>
+</head>
+<body>
+<main>
+  <div class="ptitle">
+    <div><h1>الإقفال الشهري</h1><div class="sub">كل شهر محتاج 3 ملفات PCS: صرف المخازن، والمستخلص الحالي، والمستخلص التراكمي</div></div>
+    <div class="hdr-acts">
+      <button class="btn" onclick="go('store')">تحويل صرف مخازن</button>
+      <button class="btn sec" onclick="go('ipc')">تحويل مستخلصات</button>
+    </div>
+  </div>
+
+  <div id="teach" class="empty-teach hidden">
+    <h2>لسه مفيش ملفات محفوظة</h2>
+    <div class="muted">الجدول ده بيتملى لوحده من السجل. ابدأ كده:</div>
+    <ol>
+      <li>افتح المستودعات، واختار شيت صرف المخازن، وحوّله واحفظ ملف PCS.</li>
+      <li>افتح المستخلصات، واختار الكوست ريبورت، واحفظ المستخلص الحالي والتراكمي.</li>
+      <li>ارجع هنا، وهتلاقي كل شهر قدامه اللي اتعمل واللي ناقص.</li>
+    </ol>
+    <button class="btn" onclick="go('store')">ابدأ بالمستودعات</button>
+  </div>
+
+  <div id="board">
+    <div class="tbl">
+      <table class="close"><thead><tr><th>الشهر</th><th>صرف المخازن</th><th>المستخلص الحالي</th><th>المستخلص التراكمي</th><th>الحالة</th></tr></thead>
+      <tbody id="rows"></tbody></table>
+    </div>
+
+    <div class="sect">
+      <h2>آخر الملفات المحفوظة</h2>
+      <div class="sub">آخر 5 ملفات — كل الملفات في <button class="link" onclick="go('hist')">السجل</button></div>
+      <div class="tbl"><table class="recent"><tbody id="rec"></tbody></table></div>
+    </div>
+  </div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const T=s=>window.I18N?I18N.t(s):s;
+const cur=()=>{try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}};
+const fmt=n=>Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const AR=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
+const monLbl=k=>{const [y,m]=k.split('-').map(Number); return T(AR[m-1]+' '+y);};
+function go(t){ try{ parent.nav(t); }catch(e){} }
+function money(n){ const c=cur(); return fmt(n)+(c?` <span class="cur">${esc(T(c))}</span>`:''); }
+function expand(p){ // "2026-09" | "2026-09_to_2026-11"
+  const [a,b]=p.split('_to_'); if(!b) return [a];
+  const out=[]; let [y,m]=a.split('-').map(Number); const [y2,m2]=b.split('-').map(Number);
+  while(y<y2||(y===y2&&m<=m2)){ out.push(`${y}-${String(m).padStart(2,'0')}`); m++; if(m>12){m=1;y++;} if(out.length>36) break; }
+  return out;
+}
+async function load(){
+  let runs=[], sm={};
+  try{ runs=(await (await fetch('/api/history/list',{method:'POST'})).json()).runs||[]; }catch(e){}
+  try{ const a=await (await fetch('/api/analytics?kind=store&run=all')).json(); (a.byMonth||[]).forEach(b=>sm[b.key]=b.amount); }catch(e){}
+  $('teach').classList.toggle('hidden',runs.length>0); $('board').classList.toggle('hidden',runs.length===0);
+  if(!runs.length) return;
+  // runs مترتبة من الأحدث للأقدم
+  const M={};
+  const at=k=>M[k]||(M[k]={});
+  for(const r of runs){
+    if(r.kind==='store'){ for(const k of expand(r.period)){ const c=at(k); if(!c.store) c.store={run:r,amount:sm[k]}; } }
+    else if(r.period.startsWith('current:')){ const k=r.period.slice(8); const c=at(k); if(!c.cur) c.cur={run:r,amount:r.amount}; }
+    else if(r.period.startsWith('cumulative:')){ const k=r.period.slice(11,18); const c=at(k); if(!c.cum) c.cum={run:r,amount:r.amount}; }
+  }
+  const now=new Date(), nowK=`${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  at(nowK);
+  const keys=Object.keys(M).sort().reverse().slice(0,12);
+  const cell=(x,tab)=> x
+    ? `<div class="cell"><b>${x.amount!=null?money(x.amount):'—'}</b><small>${esc(T('اتحفظ'))} ${esc((x.run.created||'').slice(0,10))}</small></div>`
+    : `<div class="cell todo"><button class="todo-btn" onclick="go('${tab}')">${esc(T('حوّل دلوقتي'))}</button></div>`;
+  $('rows').innerHTML=keys.map(k=>{
+    const c=M[k], n=['store','cur','cum'].filter(x=>c[x]).length;
+    const st=n===3?`<span class="stat-ok"><i class="ic ok"></i>${esc(T('مقفول'))}</span>`:`<span class="stat-miss">${esc(T('ناقص'))} ${3-n} ${esc(T('من'))} 3</span>`;
+    return `<tr class="${k===nowK?'cur-row':''}"><td class="mon">${esc(monLbl(k))}${k===nowK?`<small>${esc(T('الشهر الحالي'))}</small>`:''}</td>
+      <td>${cell(c.store,'store')}</td><td>${cell(c.cur,'ipc')}</td><td>${cell(c.cum,'ipc')}</td><td>${st}</td></tr>`;
+  }).join('');
+  $('rec').innerHTML=runs.slice(0,5).map(r=>{
+    let p=r.kind==='store'? r.label.replace('صرف مخازن ','') : r.label.replace('مستخلصات — ','');
+    return `<tr><td style="width:150px"><span class="badge ${r.kind}">${r.kind==='store'?'المستودعات':'المستخلصات'}</span></td>
+      <td>${esc(T(p))}</td><td class="muted small" style="white-space:nowrap">${esc(r.created)}</td><td class="amt"><span class="amt">${fmt(r.amount)}</span></td></tr>`;
+  }).join('');
+}
+window.addEventListener('focus',load); load();
+</script>
+</body>
+</html>

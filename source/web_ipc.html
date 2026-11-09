@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>المستخلصات</title>
+<link rel="stylesheet" href="/assets/base.css?v=17">
+<link rel="stylesheet" href="/assets/theme.css?v=17">
+<script src="/assets/i18n.js?v=17"></script>
+<script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
+</head>
+<body>
+<main>
+  <div class="ptitle"><div><h1>المستخلصات</h1><div class="sub">تحويل شيت Sub Contractor في الكوست ريبورت لقالب مستخلصات PCS</div></div></div>
+<section id="pIpc">
+  <!-- 1 -->
+  <div class="card">
+    <div class="step"><span class="num">01</span> اختار الكوست ريبورت</div>
+    <div id="drop" class="drop" onclick="$('f').click()">اسحب الملف هنا أو <b>اضغط للاختيار</b><br><small>xlsx / xlsm — البرنامج بيقرا شيت Sub Contractor بس</small></div>
+    <input id="f" type="file" accept=".xlsx,.xlsm" class="hidden">
+    <div id="fileRow" class="row hidden" style="margin-top:12px">
+      <span id="fileName" translate="no"></span>
+      <span class="muted">· الشيت:</span><select id="sheetSel" translate="no" onchange="changeSheet()"></select>
+    </div>
+    <div id="stats1" class="stats hidden"></div>
+    <div id="err1" class="err"></div>
+  </div>
+
+  <!-- 2 -->
+  <div id="s2" class="card hidden">
+    <div class="step"><span class="num">02</span> نوع المستخلص</div>
+    <div class="modes">
+      <label class="mode on" id="mCum"><input type="radio" name="mode" value="cumulative" checked onchange="setMode()">
+        <div><div class="l">إجمالي (تراكمي)</div><div class="s">الكمية والقيمة التراكمية لحد تاريخ المستخلص — Cumulative Qty</div></div></label>
+      <label class="mode" id="mCur"><input type="radio" name="mode" value="current" onchange="setMode()">
+        <div><div class="l">حالي (شهر واحد)</div><div class="s">كمية الشهر اللي تختاره بس — Qty This IPC</div></div></label>
+    </div>
+    <div class="fields">
+      <label id="monthWrap" class="hidden">الشهر: <select id="monthSel" onchange="monthChanged()"></select></label>
+      <label>تاريخ المستخلص: <input type="date" id="ipcDate"></label>
+      <label>VAT %: <input type="number" id="vat" value="15" min="0" max="100" style="width:70px"></label>
+    </div>
+    <div id="modeNote" class="small muted" style="margin-top:10px"></div>
+  </div>
+
+  <!-- 3 -->
+  <div id="s3" class="card hidden">
+    <div class="step"><span class="num">03</span> Task Code و Cost Code (أكواد PCS)</div>
+    <div id="codesNote" class="small" style="margin-bottom:10px"></div>
+    <div class="row" style="margin-bottom:8px">
+      <span class="chip" id="fltNeed" onclick="setFilter('need')">محتاج مراجعة</span>
+      <span class="chip on" id="fltAll" onclick="setFilter('all')">الكل</span>
+      <input id="q" placeholder="بحث بالبند أو العقد أو الكود…" oninput="renderGroups()" style="padding:6px 10px;min-width:260px">
+      <span id="grpCount" class="muted small"></span>
+      <span style="flex:1"></span>
+      <button class="link small" onclick="$('codeFiles').classList.toggle('hidden')">تحديث قوائم أكواد PCS…</button>
+    </div>
+    <div id="codeFiles" class="warnbox hidden">
+      ارفع ملفات الأكواد الجديدة من PCS (نفس شكل Task_Codes / Cost_Codes):
+      <div class="row" style="margin-top:8px">
+        <label>Task Codes: <input type="file" id="cfTask" accept=".xlsx"></label>
+        <label>Cost Codes: <input type="file" id="cfCost" accept=".xlsx"></label>
+        <button class="btn sec" onclick="uploadCodes()">حفظ</button>
+      </div>
+    </div>
+    <div class="scroll"><table><thead><tr><th>وصف التاسك في الشيت</th><th>العقد</th><th>مثال بند</th><th>السطور</th><th>القيمة</th><th>Task Code</th><th>Cost Code</th><th>المصدر</th></tr></thead><tbody id="grpBody"></tbody></table></div>
+    <datalist id="dlTask" translate="no"></datalist><datalist id="dlCost" translate="no"></datalist>
+    <div class="muted small" style="margin-top:8px">أي كود تغيّره البرنامج بيفتكره، والشهر الجاي نفس البند في نفس العقد بياخد نفس الكود لوحده.</div>
+  </div>
+
+  <!-- 4 -->
+  <div id="s4" class="card hidden">
+    <div class="row"><button id="go" class="btn" onclick="convert()">تحويل</button></div>
+    <div id="err4" class="err"></div>
+    <div id="result" class="hidden" style="margin-top:16px">
+      <div id="checkLine" class="check"></div>
+      <table id="recon" style="max-width:760px"></table>
+      <div id="resNotes" class="small" style="margin:10px 0 14px"></div>
+      <div class="row" style="margin-bottom:14px">
+        <button class="btn" onclick="saveFile()">حفظ ملف PCS… (اختار المكان)</button>
+        <span id="saved" class="ok small"></span>
+      </div>
+      <details><summary class="link">تفاصيل المستخلصات (<span id="conCount"></span>)</summary>
+        <div class="scroll" style="margin-top:8px"><table><thead><tr><th>المقاول</th><th>Contract No</th><th>الأعمال</th><th>رقم المستخلص</th><th>السطور</th><th>الصافي</th><th>المحتجز</th></tr></thead><tbody id="conBody"></tbody></table></div>
+      </details>
+    </div>
+  </div>
+</section>
+</main>
+<div id="busy" class="busy hidden">جاري الشغل…</div>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let info=null, groups=[], filter='all', taskMap={}, costMap={};
+function busy(on){ $('busy').classList.toggle('hidden',!on); }
+function err(id,m){ const e=$(id); e.textContent=m||''; e.style.display=m?'block':'none'; }
+async function api(url,body,isForm){
+  const r=await fetch(url,{method:'POST',body:isForm?body:JSON.stringify(body||{}),headers:isForm?{}:{'Content-Type':'application/json'}});
+  const j=await r.json(); if(!r.ok) throw Object.assign(new Error(j.error||'خطأ'),{data:j}); return j;
+}
+function hide(...ids){ ids.forEach(i=>$(i).classList.add('hidden')); }
+function show(...ids){ ids.forEach(i=>$(i).classList.remove('hidden')); }
+
+// ---------- 1: file ----------
+const drop=$('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
+$('f').addEventListener('change',e=>{ if(e.target.files[0]) upload(e.target.files[0]); e.target.value=''; });
+
+async function upload(file){
+  err('err1'); hide('s2','s3','s4','fileRow','stats1'); busy(true);
+  const fd=new FormData(); fd.append('file',file);
+  try{ await showInfo(await api('/api/ipc/load',fd,true)); }
+  catch(e){ err('err1',e.message); if(e.data&&e.data.sheets){ fillSheets(e.data.sheets,''); $('fileName').innerHTML='<b>'+esc(file.name)+'</b>'; show('fileRow'); } }
+  busy(false);
+}
+function fillSheets(list,cur){ $('sheetSel').innerHTML=list.map(s=>`<option ${s===cur?'selected':''}>${esc(s)}</option>`).join(''); }
+async function changeSheet(){
+  busy(true); err('err1'); hide('s2','s3','s4');
+  try{ await showInfo(await api('/api/ipc/sheet',{sheet:$('sheetSel').value})); }catch(e){ err('err1',e.message); }
+  busy(false);
+}
+async function showInfo(j){
+  info=j;
+  $('fileName').innerHTML='<i class="ic ok"></i><b>'+esc(j.file)+'</b>';
+  fillSheets(j.sheets,j.sheet); show('fileRow');
+  $('stats1').innerHTML=`<div class="stat"><span class="muted small">المقاولين/العقود</span><b>${fmt(j.contracts)}</b></div>
+    <div class="stat"><span class="muted small">البنود</span><b>${fmt(j.items)}</b></div>
+    <div class="stat"><span class="muted small">صافي الأعمال التراكمي</span><b>${fmt(j.amount)}</b></div>
+    <div class="stat"><span class="muted small">Cut-off</span><b>${esc(j.cutoffLabel)}</b></div>`;
+  show('stats1');
+  // months
+  $('monthSel').innerHTML=j.months.slice().reverse().map(m=>`<option value="${m.key}" ${m.key===j.cutoff?'selected':''}>${m.label} — ${fmt(m.amount)}</option>`).join('');
+  setDateFor(j.cutoff); setMode();
+  show('s2');
+  // codes
+  const c=await api('/api/ipc/codes');
+  taskMap={}; costMap={};
+  c.codes.task.forEach(x=>taskMap[x.code]=x.ar||x.en);
+  c.codes.cost.forEach(x=>costMap[x.code]=x.ar||x.en);
+  $('dlTask').innerHTML=c.codes.task.map(x=>`<option value="${esc(x.code)}">${esc(x.code+' — '+(x.ar||x.en))}</option>`).join('');
+  $('dlCost').innerHTML=c.codes.cost.map(x=>`<option value="${esc(x.code)}">${esc(x.code+' — '+(x.ar||x.en)+(x.type?' · '+x.type:''))}</option>`).join('');
+  groups=c.groups||[];
+  groups.forEach(g=>{ g.t=g.task.code||''; g.c=g.cost.code||''; });
+  const need=groups.filter(isReview).length;
+  $('codesNote').innerHTML=`الشيت مفيهوش Task Code ولا Cost Code، فالبرنامج ربط <b>${fmt(groups.length)}</b> مجموعة بنود بأكواد PCS. `+
+    (need?`<span style="color:var(--warn)"><b>${fmt(need)}</b> منهم مقترحين ومحتاجين مراجعة (الصفوف الملونة).</span>`:'<span class="ok"><i class="ic ok"></i>كلهم متربطين، راجعهم بسرعة.</span>')+
+    ` <span class="muted">قايمة الأكواد: ${c.codesFrom==='file'?'آخر قايمة رفعتها':'قايمة PCS الأساسية'} (${c.codes.task.length} Task · ${c.codes.cost.length} Cost)</span>`;
+  setFilter(need?'need':'all'); show('s3','s4'); hide('result');
+}
+function setDateFor(key){
+  if(!key) return; const [y,m]=key.split('-').map(Number);
+  const last=new Date(Date.UTC(y,m,0)).getUTCDate(); const d=Math.min(30,last);
+  $('ipcDate').value=`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+}
+function mode(){ return document.querySelector('input[name=mode]:checked').value; }
+function setMode(){
+  const cur=mode()==='current';
+  $('mCum').classList.toggle('on',!cur); $('mCur').classList.toggle('on',cur);
+  $('monthWrap').classList.toggle('hidden',!cur);
+  if(cur) setDateFor($('monthSel').value); else setDateFor(info.cutoff);
+  $('modeNote').textContent = cur ? 'هيتنقل كل بند ليه كمية في الشهر ده بس، والمحتجز = نسبة الضمان × قيمة الشهر.'
+    : 'هتتنقل الكمية والقيمة التراكمية والمحتجز التراكمي زي ما هما في الشيت. المقاولين اللي مالهمش مستخلص بيتشالوا.';
+  hide('result');
+}
+function monthChanged(){ setDateFor($('monthSel').value); hide('result'); }
+
+// ---------- 3: codes ----------
+function isReview(g){ return g.task.src==='suggest'||g.task.src==='none'||g.cost.src==='suggest'||g.cost.src==='none'||!g.t||!g.c; }
+function setFilter(f){ filter=f; $('fltNeed').classList.toggle('on',f==='need'); $('fltAll').classList.toggle('on',f==='all'); renderGroups(); }
+function tagOf(p){
+  if(p.src==='memory') return '<span class="tag mem">ذاكرة</span>';
+  if(p.src==='rule') return '<span class="tag mem">قاعدة</span>';
+  if(p.src==='suggest') return `<span class="tag sug">مقترح ${Math.round(p.score*100)}%</span>`;
+  if(p.src==='user') return '<span class="tag mem">انت</span>';
+  return '<span class="tag none">مش لاقي</span>';
+}
+function renderGroups(){
+  const q=$('q').value.trim().toLowerCase();
+  const list=groups.filter(g=>(filter==='all'||isReview(g)) && (!q||(g.taskDesc+' '+g.trade+' '+g.sample+' '+g.t+' '+g.c).toLowerCase().includes(q)));
+  $('grpCount').textContent=`${fmt(list.length)} مجموعة`;
+  $('grpBody').innerHTML=list.map(g=>{
+    const i=groups.indexOf(g);
+    const bad=!g.t||!g.c||g.task.src==='none'||g.cost.src==='none', low=g.task.src==='suggest'||g.cost.src==='suggest';
+    const cell=(val,dl,map,k)=>`<input class="code" list="${dl}" value="${esc(val)}" data-i="${i}" data-k="${k}" oninput="setCode(this)"><span class="cdesc" translate="no" title="${esc(map[val]||'')}">${esc(map[val]||'')}</span>`;
+    return `<tr class="${bad?'r':(low?'y':'')}"><td translate="no">${esc(g.taskDesc)}</td><td class="small" translate="no">${esc(g.trade)}</td><td class="sample" translate="no" title="${esc(g.sample)}">${esc(g.sample)}</td>
+      <td class="n">${fmt(g.lines)}</td><td class="n">${fmt(g.amount)}</td>
+      <td>${cell(g.t,'dlTask',taskMap,'t')}</td><td>${cell(g.c,'dlCost',costMap,'c')}</td>
+      <td>${tagOf(g.task)} ${g.cost.src!==g.task.src?tagOf(g.cost):''}</td></tr>`;
+  }).join('');
+}
+function setCode(inp){
+  const g=groups[+inp.dataset.i]; const v=inp.value.trim(); g[inp.dataset.k]=v;
+  const map=inp.dataset.k==='t'?taskMap:costMap;
+  inp.nextElementSibling.textContent=map[v]||(v?'كود مش في قايمة PCS':''); inp.nextElementSibling.style.color=(v&&!map[v])?'var(--warn)':'';
+  (inp.dataset.k==='t'?g.task:g.cost).src='user';
+}
+async function uploadCodes(){
+  const fd=new FormData(); if($('cfTask').files[0]) fd.append('task',$('cfTask').files[0]); if($('cfCost').files[0]) fd.append('cost',$('cfCost').files[0]);
+  busy(true);
+  try{ await api('/api/ipc/codefiles',fd,true); hide('codeFiles'); if(info) await showInfo(info); }catch(e){ alert(e.message); }
+  busy(false);
+}
+
+// ---------- 4: convert ----------
+async function convert(){
+  err('err4'); $('saved').textContent='';
+  const body={mode:mode(),month:$('monthSel').value,date:$('ipcDate').value,vat:parseFloat($('vat').value)||15,codes:{}};
+  if(mode()!=='current') body.month='';
+  groups.forEach(g=>body.codes[g.key]=[g.t||'',g.c||'']);
+  const bad=groups.filter(g=>(g.t&&!taskMap[g.t])||(g.c&&!costMap[g.c]));
+  if(bad.length && !confirm(`في ${bad.length} كود مش موجود في قايمة PCS. تكمّل؟`)) return;
+  $('go').disabled=true; busy(true);
+  try{
+    const j=await api('/api/ipc/convert',body); const r=j.result;
+    $('checkLine').className='check '+(r.match?'good':'bad');
+    $('checkLine').innerHTML=r.match?'<i class="ic ok"></i>مطابق لشيت المقاولين':'<i class="ic no"></i>في اختلاف — بلّغني';
+    $('recon').innerHTML=`<tr><th></th><th>القيمة</th></tr>
+      <tr><td>صافي الأعمال في شيت المقاولين (${esc(r.label)})</td><td class="n">${fmt(r.sheetNet)}</td></tr>
+      <tr><td>بنود الأعمال في ملف PCS</td><td class="n">${fmt(r.outWorks)}</td></tr>
+      <tr><td>الخصومات (Other Deductions)</td><td class="n">${fmt(-r.outDeduct)}</td></tr>
+      ${r.skipAmount?`<tr><td>مقاولين اتشالوا</td><td class="n">${fmt(r.skipAmount)}</td></tr>`:''}
+      <tr><td><b>صافي ملف PCS</b></td><td class="n"><b>${fmt(r.outWorks-r.outDeduct)}</b></td></tr>
+      <tr class="small"><td class="muted">المحتجز (شيت / PCS)</td><td class="n">${fmt(r.sheetRet)} / ${fmt(r.outRet)}</td></tr>
+      <tr class="small"><td class="muted">مستخلصات · سطور</td><td class="n">${fmt(r.contracts.length)} · ${fmt(j.lines)}</td></tr>`;
+    const notes=[];
+    (r.warnings||[]).forEach(w=>notes.push(`<i class="ic warn"></i>${esc(w.contractor)} — صف ${w.row}: ${esc(w.why)}`));
+    const sk=(r.skips||[]).filter(s=>s.amount); if(sk.length) notes.push(`${sk.length} عقد اتشال لأن مالوش مستخلص (التفاصيل في ملف المراجعة).`);
+    if(j.noTask) notes.push(`${fmt(j.noTask)} سطر من غير Task Code.`);
+    if(j.noCost) notes.push(`${fmt(j.noCost)} سطر من غير Cost Code.`);
+    if(j.previous&&j.previous.length) notes.unshift(`<span style="color:var(--warn)"><i class="ic warn"></i>المستخلص ده (${esc(r.label)}) اتصدّر قبل كده ${j.previous.length} مرة (آخر مرة ${esc(j.previous[0].created)}).</span>`);
+    $('resNotes').innerHTML=notes.join('<br>');
+    $('conCount').textContent=r.contracts.length;
+    $('conBody').innerHTML=r.contracts.map(c=>`<tr><td translate="no">${esc(c.contractor)}</td><td class="n">${esc(c.contractNo)}</td><td class="small" translate="no">${esc(c.trade)}</td><td class="n">${c.ipc}</td><td class="n">${c.lines}</td><td class="n">${fmt(c.net)}</td><td class="n">${fmt(c.retention)}</td></tr>`).join('');
+    show('result'); $('result').scrollIntoView({behavior:'smooth'});
+  }catch(e){ err('err4',e.message); }
+  $('go').disabled=false; busy(false);
+}
+async function saveFile(){
+  try{ const j=await api('/api/ipc/save');
+    if(j.path){ $('saved').innerHTML='<i class="ic ok"></i>اتحفظ: '+esc(j.path)+' · <button class="link" onclick="openF('+JSON.stringify(j.path).replace(/"/g,'&quot;')+')">افتح الفولدر</button><br><span class="muted small">وملف المراجعة جنبه، واتسجل في السجل.</span>'+(j.dbNote?'<br><span style="color:var(--bad)">'+esc(j.dbNote)+'</span>':''); } }
+  catch(e){ $('saved').textContent=e.message; }
+}
+async function openF(p){ try{ await api('/api/open-folder',{path:p}); }catch(e){} }
+
+</script>
+</body>
+</html>

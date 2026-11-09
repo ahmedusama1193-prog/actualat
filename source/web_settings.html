@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>الإعدادات</title>
+<link rel="stylesheet" href="/assets/base.css?v=17">
+<link rel="stylesheet" href="/assets/theme.css?v=17">
+<script src="/assets/i18n.js?v=17"></script>
+<script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();</script>
+<style>
+  .set{background:var(--card);border:1px solid var(--line);border-radius:16px;margin-bottom:16px;overflow:hidden}
+  .set .it{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 22px;border-bottom:1px solid var(--line)}
+  .set .it:last-child{border-bottom:none}
+  .set .it b{display:block;font-size:15px;font-weight:600}
+  .set .it span.d{color:var(--muted);font-size:13px}
+  .path{direction:ltr;unicode-bidi:plaintext;color:var(--muted);font-size:12.5px;max-width:520px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .acc{display:flex;align-items:center;gap:12px}
+  .acc .me{font-size:12px;color:var(--pri);font-weight:600}
+  .mini{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;padding:16px 22px;border-top:1px solid var(--line)}
+  .mini label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600}
+  .mini input{height:38px;width:200px;padding:0 10px;background:transparent;border:1px solid var(--line2);color:var(--ink);font:inherit;user-select:text}
+  .mini input:focus{border-color:var(--pri);outline:none}
+  .mini .fm{width:100%;font-size:13px;min-height:18px}
+  .mini .fm.ok{color:var(--ok)} .mini .fm.bad{color:var(--bad)}
+  .del{background:none;border:1px solid var(--line2);color:var(--muted);font:inherit;font-size:13px;padding:5px 12px;cursor:pointer}
+  .del:hover{color:var(--bad);border-color:var(--bad)}
+  h2{font-size:14px;color:var(--muted);font-weight:600;margin:22px 4px 10px}
+</style>
+</head>
+<body>
+<main>
+  <div class="ptitle"><div><h1>الإعدادات</h1><div class="sub">الحسابات، شكل البرنامج، اللغة، العملة، التحديثات ومكان البيانات</div></div></div>
+
+  <h2>الحسابات على الجهاز ده</h2>
+  <div class="set" id="accSet">
+    <div id="accList"></div>
+    <div class="it"><div><b>إضافة حساب</b><span class="d">لحد تاني بيستخدم نفس الجهاز — كل الحسابات بتشوف نفس السجل</span></div>
+      <button class="btn sec" onclick="tog('addF')" style="padding:8px 18px">إضافة حساب</button></div>
+    <form class="mini hidden" id="addF" onsubmit="addAcc(event)">
+      <label>اسم المستخدم<input id="aU" required></label>
+      <label>الباسورد<input id="aP" type="password" required></label>
+      <button class="btn" id="aB" style="padding:8px 18px">إضافة</button>
+      <div class="fm" id="aM"></div>
+    </form>
+    <div class="it"><div><b>تغيير الباسورد</b><span class="d">للحساب اللي انت داخل بيه</span></div>
+      <button class="btn sec" onclick="tog('pwF')" style="padding:8px 18px">تغيير الباسورد</button></div>
+    <form class="mini hidden" id="pwF" onsubmit="chPw(event)">
+      <label>الباسورد الحالي<input id="oP" type="password" required></label>
+      <label>الباسورد الجديد<input id="nP" type="password" required></label>
+      <button class="btn" id="pB" style="padding:8px 18px">حفظ</button>
+      <div class="fm" id="pM"></div>
+    </form>
+  </div>
+
+  <h2>الشكل واللغة</h2>
+  <div class="set">
+    <div class="it"><div><b>اللغة</b><span class="d">لغة الواجهة — ملفات PCS والمراجعة مش بتتغير</span></div>
+      <div class="seg"><button id="lgAr" onclick="setLang('ar')">العربية</button><button id="lgEn" onclick="setLang('en')">English</button></div></div>
+    <div class="it"><div><b>الثيم</b><span class="d">داكن زي التصميم الجديد، أو فاتح للشغل في النهار</span></div>
+      <div class="seg"><button id="thDark" onclick="setTheme('dark')">داكن</button><button id="thLight" onclick="setTheme('light')">فاتح</button></div></div>
+    <div class="it"><div><b>العملة اللي بتظهر جنب المبالغ</b><span class="d">في الرئيسية والـ Dashboard والسجل بس — مش بتغيّر أي رقم في ملفات PCS</span></div>
+      <div class="seg" id="curSeg"><button data-c="ج.م">ج.م</button><button data-c="ر.س">ر.س</button><button data-c="-">من غير</button></div></div>
+  </div>
+
+  <h2>التحديثات</h2>
+  <div class="set">
+    <div class="it"><div><b><span>الإصدار</span> <span id="ver" class="n"></span></b><span class="d" id="updD">البرنامج بيدوّر على تحديث لوحده كل ما تفتحه</span></div>
+      <button class="btn sec" id="chk" onclick="check()" style="padding:8px 18px">دوّر على تحديث</button></div>
+  </div>
+
+  <h2>البيانات على جهازك</h2>
+  <div class="set">
+    <div class="it"><div style="min-width:0"><b>فولدر البيانات</b><span class="d">قاعدة البيانات (السجل) + ذاكرة الأكواد — انسخه لو عايز نسخة احتياطية</span><div class="path" id="dataDir"></div></div>
+      <button class="btn sec" onclick="openF('dir')" style="padding:8px 18px">افتح</button></div>
+    <div class="it"><div style="min-width:0"><b>آخر فولدر اتحفظ فيه</b><span class="d">نافذة الحفظ بتفتح عليه على طول</span><div class="path" id="lastDir">—</div></div>
+      <button class="btn sec" onclick="openF('last')" style="padding:8px 18px">افتح</button></div>
+  </div>
+  <div id="err" class="err"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const T=s=>window.I18N?I18N.t(s):s;
+let S={};
+function err(m){ const e=$('err'); e.textContent=m||''; e.style.display=m?'block':'none'; }
+async function api(url,body){ const r=await fetch(url,{method:'POST',body:JSON.stringify(body||{}),headers:{'Content-Type':'application/json'}}); const j=await r.json(); if(!r.ok) throw new Error(j.error||'خطأ'); return j; }
+function paint(){
+  $('thDark').classList.toggle('on',S.theme==='dark'); $('thLight').classList.toggle('on',S.theme==='light');
+  $('lgAr').classList.toggle('on',S.lang!=='en'); $('lgEn').classList.toggle('on',S.lang==='en');
+  const c=S.currency||'-';
+  document.querySelectorAll('#curSeg button').forEach(b=>b.classList.toggle('on',b.dataset.c===c));
+  $('ver').textContent=S.version; $('dataDir').textContent=S.dataDir; $('lastDir').textContent=S.lastDir||'—';
+}
+async function load(){ try{ S=await api('/api/settings'); paint(); loadAcc(); }catch(e){ err(e.message); } }
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function tog(id){ $(id).classList.toggle('hidden'); const i=$(id).querySelector('input'); if(i&&!$(id).classList.contains('hidden')) i.focus(); }
+async function loadAcc(){
+  try{ const j=await (await fetch('/api/auth/users')).json();
+    $('accList').innerHTML=(j.users||[]).map(u=>`<div class="it"><div class="acc"><div><b translate="no">${esc(u.name)}</b><span class="d">${esc(T('اتعمل'))} ${esc(u.created)}</span></div>${u.me?`<span class="me">${esc(T('انت'))}</span>`:''}</div>
+      ${u.me?'':`<button class="del" data-u="${esc(u.name)}">${esc(T('مسح الحساب'))}</button>`}</div>`).join('');
+    document.querySelectorAll('#accList .del').forEach(b=>b.onclick=()=>delAcc(b.dataset.u));
+  }catch(e){}
+}
+function say(id,m,ok){ const e=$(id); e.textContent=T(m); e.className='fm '+(ok?'ok':'bad'); }
+async function busy(b,f){ b.classList.add('busy'); b.disabled=true; try{ await f(); } finally{ b.classList.remove('busy'); b.disabled=false; } }
+async function addAcc(e){ e.preventDefault(); await busy($('aB'),async()=>{ try{ await api('/api/auth/add',{user:$('aU').value,pass:$('aP').value}); say('aM','الحساب اتضاف',true); $('aU').value=$('aP').value=''; loadAcc(); }catch(x){ say('aM',x.message); } }); }
+async function chPw(e){ e.preventDefault(); await busy($('pB'),async()=>{ try{ await api('/api/auth/passwd',{pass:$('oP').value,newPass:$('nP').value}); say('pM','الباسورد اتغير',true); $('oP').value=$('nP').value=''; }catch(x){ say('pM',x.message); } }); }
+async function delAcc(u){ if(!confirm(T('تمسح الحساب')+' '+u+'?')) return; try{ await api('/api/auth/remove',{user:u}); loadAcc(); }catch(x){ err(x.message); } }
+async function save(b){ try{ S=await api('/api/settings',b); paint(); try{ parent.applySettings(S); }catch(e){} }catch(e){ err(e.message); } }
+function setTheme(t){ save({theme:t}); }
+function setLang(l){ save({lang:l}); }
+document.querySelectorAll('#curSeg button').forEach(b=>b.onclick=()=>save({currency:b.dataset.c}));
+async function check(){
+  $('chk').disabled=true; $('updD').textContent='بيدوّر…';
+  try{ const u=await (await fetch('/api/update/check')).json();
+    if(u.error) $('updD').textContent='مقدرش يوصل لمكان التحديثات — اتأكد من النت';
+    else if(u.available){ $('updD').textContent=`${T('في إصدار جديد')} ${u.version}`+(u.notes?` — ${u.notes}`:''); try{ parent.showUpdate(u); }catch(e){} }
+    else $('updD').textContent='انت على آخر إصدار';
+  }catch(e){ $('updD').textContent='حصل خطأ'; }
+  $('chk').disabled=false;
+}
+async function openF(w){ const p=w==='dir'?S.dataDir:S.lastDir; if(!p) return; try{ await api('/api/open-folder',{path:p}); }catch(e){ err(e.message); } }
+load();
+</script>
+</body>
+</html>

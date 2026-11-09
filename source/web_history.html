@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>السجل</title>
+<link rel="stylesheet" href="/assets/base.css?v=17">
+<link rel="stylesheet" href="/assets/theme.css?v=17">
+<script src="/assets/i18n.js?v=17"></script>
+<script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();</script>
+<style>
+  .tbl td.fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:left}
+  .tbl td.per{color:var(--muted);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .acts{display:flex;gap:6px;justify-content:flex-end}
+  .foot{display:flex;justify-content:space-between;align-items:center;margin-top:14px;color:var(--muted);font-size:12.5px}
+  .search{min-width:240px;padding:7px 12px!important;border-radius:10px!important}
+</style>
+</head>
+<body>
+<main>
+  <div class="ptitle">
+    <div><h1>سجل الملفات المحفوظة</h1><div class="sub">كل ملف PCS بتحفظه بيتسجل هنا بنسخة منه ومن ملف المراجعة — تقدر تنزّله تاني في أي وقت</div></div>
+    <span id="pill" class="pill"><i></i><span id="pillT">قاعدة البيانات شغالة</span></span>
+  </div>
+  <div class="row" style="justify-content:space-between;align-items:flex-end">
+    <div class="utabs" style="border:none;margin:0">
+      <button class="utab on" id="fAll" onclick="flt('all')">الكل</button>
+      <button class="utab" id="fStore" onclick="flt('store')">المستودعات</button>
+      <button class="utab" id="fIpc" onclick="flt('ipc')">المستخلصات</button>
+    </div>
+    <input id="q" class="search" placeholder="بحث باسم الملف أو الفترة…" oninput="render()">
+  </div>
+  <div style="border-bottom:1px solid var(--line);margin:0 0 18px"></div>
+  <div class="tbl">
+    <table style="table-layout:fixed"><colgroup><col style="width:150px"><col style="width:120px"><col style="width:170px"><col><col style="width:110px"><col style="width:175px"><col style="width:120px"><col style="width:250px"></colgroup><thead><tr><th>تاريخ الحفظ</th><th>التصنيف</th><th>الفترة</th><th>اسم الملف</th><th>عدد البنود</th><th>القيمة المالية</th><th>الحالة</th><th></th></tr></thead>
+    <tbody id="body"></tbody></table>
+    <div id="empty" class="empty hidden">لسه مفيش ملفات اتحفظت. كل ملف PCS تحفظه من المستودعات أو المستخلصات بيتسجل هنا بتاريخه وقيمته، وتقدر تفتح فولدره أو تشيله من السجل.</div>
+  </div>
+  <div class="foot"><span id="cnt"></span><span><button class="link" style="color:var(--muted)" onclick="openF('')"><i class="ic folder"></i>افتح فولدر البيانات</button></span></div>
+  <div id="err" class="err"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const T=s=>window.I18N?I18N.t(s):s;
+const cur=()=>{try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}};
+const fmt=n=>Number(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let runs=[], f='all';
+function err(m){ const e=$('err'); e.textContent=m||''; e.style.display=m?'block':'none'; }
+async function api(url,body){ const r=await fetch(url,{method:'POST',body:JSON.stringify(body||{}),headers:{'Content-Type':'application/json'}}); const j=await r.json(); if(!r.ok) throw new Error(j.error||'خطأ'); return j; }
+async function load(){
+  try{ const j=await api('/api/history/list'); runs=j.runs||[]; $('pill').classList.remove('off'); $('pillT').textContent='قاعدة البيانات شغالة'; render(); }
+  catch(e){ $('pill').classList.add('off'); $('pillT').textContent='قاعدة البيانات مش متاحة'; err(e.message); }
+}
+function flt(x){ f=x; ['All','Store','Ipc'].forEach(k=>$('f'+k).classList.toggle('on',k.toLowerCase()===x)); render(); }
+function period(r){ let p=r.kind==='store'? r.label.replace('صرف مخازن ','') : r.label.replace('مستخلصات — ','');
+  const m=p.split(' + '); if(m.length>2) p=`${m[0].split(' ')[0]} ← ${m[m.length-1]} (${m.length} شهور)`; return T(p); }
+function fname(r){ return (r.savedPath||r.outName||'').split(/[\\/]/).pop(); }
+function render(){
+  const q=$('q').value.trim().toLowerCase();
+  const list=runs.filter(r=>(f==='all'||r.kind===f) && (!q || (fname(r)+' '+r.source+' '+r.label+' '+period(r)).toLowerCase().includes(q)));
+  $('empty').classList.toggle('hidden',list.length>0);
+  $('cnt').textContent=list.length?`${list.length} ملف`:'';
+  const c=cur();
+  $('body').innerHTML=list.map(r=>`<tr>
+    <td class="n" style="white-space:nowrap;text-align:start">${esc(r.created)}</td>
+    <td><span class="badge ${r.kind}">${r.kind==='store'?'المستودعات':'المستخلصات'}</span></td>
+    <td class="per" title="${esc(period(r))}">${esc(period(r))}</td>
+    <td class="fn" translate="no" title="${esc(r.savedPath)}">${esc(fname(r))}</td>
+    <td style="white-space:nowrap">${Number(r.items||0).toLocaleString('en-US')} ${r.kind==='ipc'?'مستخلص':'بند'}</td>
+    <td><span class="amt">${fmt(r.amount)}</span>${c?`<span class="cur">${esc(c)}</span>`:''}</td>
+    <td>${r.exists?'<span class="badge done" title="الملف موجود في مكانه">محفوظ</span>':'<span class="badge gone" title="الملف اتنقل أو اتمسح — تقدر تنزّله تاني من هنا">مش في مكانه</span>'}</td>
+    <td><div class="acts">
+      ${r.exists?`<button class="ibtn" onclick='openF(${JSON.stringify(r.savedPath).replace(/'/g,'&#39;')})' title="افتح الفولدر" aria-label="افتح الفولدر"><i class="ic folder" style="margin:0"></i></button>`:''}
+      <button class="ibtn" onclick="dl(${r.id},'out')">ملف PCS</button>
+      <button class="ibtn" onclick="dl(${r.id},'review')">المراجعة</button>
+      <button class="ibtn del" onclick="del(${r.id})" title="حذف من السجل" aria-label="حذف من السجل"><i class="ic no" style="margin:0"></i></button></div></td></tr>`).join('');
+}
+async function dl(id,which){ err(); try{ await api('/api/history/save',{id,which}); load(); }catch(e){ err(e.message); } }
+async function del(id){ if(!confirm('تمسح السجل ده؟ (الملف اللي على جهازك مش هيتمسح)')) return; try{ await api('/api/history/delete',{id}); load(); }catch(e){ err(e.message); } }
+async function openF(p){ try{ await api('/api/open-folder',{path:p}); }catch(e){ err(e.message); } }
+window.addEventListener('focus',load); load();
+</script>
+</body>
+</html>
