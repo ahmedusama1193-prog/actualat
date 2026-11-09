@@ -1,6 +1,6 @@
 {
- "version": "2.1",
- "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/b692671286206fd68e16e987aaef6e7481018619/Actualat.exe",
- "sha256": "ffc5b49f39d0839f8ad7a2536809e62e31b0eee9f164997bae9270b10a766232",
- "notes": "شاشة بداية جديدة للبرنامج: اللوجو، حالة الشهر، ودخول بزرار واحد"
+ "version": "2.2",
+ "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/d6ea57e4a2bb468425e19f3608e3468114c1b957/Actualat.exe",
+ "sha256": "5a6e480f051bf6fe2817b15786a11d0c8ea014b2682c4993d321d569766682b7",
+ "notes": "رجعت الحسابات بيوزر نيم وباسورد، والدخول بقى في شاشة البداية"
 }

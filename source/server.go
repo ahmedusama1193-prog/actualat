@@ -42,13 +42,8 @@ var settingsHTML []byte
 //go:embed web_welcome.html
 var welcomeHTML []byte
 
-// startPath: شاشة البداية إلا لو اتقفلت من الإعدادات
-func startPath() string {
-	if getSetting("welcome") == "off" {
-		return "/"
-	}
-	return "/welcome.html"
-}
+// startPath: البرنامج بيفتح دايمًا على شاشة البداية (فيها الدخول)
+func startPath() string { return "/welcome.html" }
 
 //go:embed assets/web
 var webFS embed.FS
@@ -319,7 +314,8 @@ func startServerOn(addr string) (string, error) {
 	mux.HandleFunc("/dashboard.html", page(dashboardHTML))
 	mux.HandleFunc("/analytics.html", page(analyticsHTML))
 	mux.HandleFunc("/settings.html", page(settingsHTML))
-	mux.HandleFunc("/login.html", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/", http.StatusFound) })
+	mux.HandleFunc("/login.html", func(w http.ResponseWriter, r *http.Request) { http.Redirect(w, r, "/welcome.html", http.StatusFound) })
+	registerAuth(mux)
 	mux.HandleFunc("/welcome.html", page(welcomeHTML))
 	registerStore(mux)
 	registerHistory(mux)
@@ -361,6 +357,6 @@ func startServerOn(addr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	go http.Serve(ln, mux)
+	go http.Serve(ln, requireAuth(mux))
 	return "http://" + ln.Addr().String() + "/", nil
 }

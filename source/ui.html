@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <title>اكشوالات · Actualat</title>
 <link rel="icon" href="/assets/favicon.png">
-<link rel="stylesheet" href="/assets/base.css?v=21">
-<link rel="stylesheet" href="/assets/theme.css?v=21">
+<link rel="stylesheet" href="/assets/base.css?v=22">
+<link rel="stylesheet" href="/assets/theme.css?v=22">
 <script>window.__lang='ar';</script>
-<script src="/assets/i18n.js?v=21"></script>
+<script src="/assets/i18n.js?v=22"></script>
 <style>
   html,body{height:100%;overflow:hidden}
   body{display:flex;flex-direction:column;padding:0;background:var(--bg)}
@@ -69,6 +69,7 @@
     <button class="tb" id="lngBtn" onclick="toggleLang()" title="Language / اللغة">EN</button>
     <span class="who" id="who" translate="no"></span>
     <button class="tb" id="n-set" onclick="nav('set')" title="الإعدادات"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>الإعدادات</span></button>
+    <button class="tb" onclick="logout()" title="تسجيل الخروج"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg><span>خروج</span></button>
   </div>
 </header>
 
@@ -145,6 +146,7 @@ async function doUpdate(){
   try{ const r=await fetch('/api/update/apply',{method:'POST'}); const j=await r.json(); if(!r.ok) throw new Error(j.error||'خطأ'); }
   catch(e){ $('busy').classList.add('hidden'); alert(I18N.t(e.message)); }
 }
+async function logout(){ try{ await fetch('/api/auth/logout',{method:'POST'}); }catch(e){} location.href='/welcome.html'; }
 async function openData(){ try{ await fetch('/api/open-folder',{method:'POST',body:JSON.stringify({path:S.dataDir||''})}); }catch(e){} }
 (async()=>{
   try{ S=await (await fetch('/api/settings',{method:'POST',body:'{}'})).json(); }catch(e){}

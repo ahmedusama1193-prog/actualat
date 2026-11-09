@@ -20,6 +20,7 @@ go build -trimpath -ldflags "-s -w -H windowsgui" -o Actualat.exe .
 |---|---|
 | `main_windows.go` | الشباك، التثبيت، الاختصارات، إلغاء التثبيت، الأيقونة |
 | `server.go` | السيرفر المحلي والصفحات |
+| `auth.go` | الحسابات وتسجيل الدخول (الـ backend) |
 | `store.go` / `ipc.go` / `codes.go` | تحويل المخازن والمستخلصات |
 | `db.go` / `analytics.go` | السجل والـ Dashboard |
 | `update.go` / `updkey.go` | التحديثات من GitHub |

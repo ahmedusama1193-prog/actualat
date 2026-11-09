@@ -91,5 +91,8 @@ func hSettings(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	m := settingsJSON()
+	if u := sessionUser(r); u != "" {
+		m["user"] = u
+	}
 	writeJSON(w, 200, m)
 }

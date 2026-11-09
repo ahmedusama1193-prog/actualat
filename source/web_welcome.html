@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <title>اكشوالات · Actualat</title>
 <link rel="icon" href="/assets/favicon.png">
-<link rel="stylesheet" href="/assets/base.css?v=21">
-<link rel="stylesheet" href="/assets/theme.css?v=21">
+<link rel="stylesheet" href="/assets/base.css?v=22">
+<link rel="stylesheet" href="/assets/theme.css?v=22">
 <script>window.__lang='ar';</script>
-<script src="/assets/i18n.js?v=21"></script>
+<script src="/assets/i18n.js?v=22"></script>
 <style>
   html,body{height:100%;margin:0;overflow:hidden}
   body{display:grid;grid-template-columns:minmax(380px,46%) 1fr;background:var(--bg)}
@@ -51,6 +51,20 @@
   .foot label{display:flex;align-items:center;gap:8px;cursor:pointer}
   .foot input{width:16px;height:16px;margin:0}
   .foot kbd{font:inherit;font-size:12px;border:1px solid var(--line2);padding:1px 6px}
+  .fld{display:block;margin-bottom:16px}
+  .fld span{display:block;font-size:13.5px;margin-bottom:6px;color:var(--ink);font-weight:600}
+  .fld .in{position:relative}
+  .fld input{width:100%;box-sizing:border-box;height:48px;padding:0 14px;background:transparent;border:1px solid var(--line2);color:var(--ink);font:inherit;font-size:15px;user-select:text}
+  .fld input:hover{border-color:var(--muted)}
+  .fld input:focus{border-color:var(--pri);outline:none}
+  .fld input.pw{padding-inline-end:48px}
+  .eye{position:absolute;inset-inline-end:0;top:0;width:48px;height:48px;background:none;border:none;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center}
+  .eye:hover{color:var(--ink)} .eye svg{width:20px;height:20px}
+  .rem{display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--muted);cursor:pointer;margin:-4px 0 6px;width:max-content}
+  .rem input{width:16px;height:16px;margin:0}
+  .msg{min-height:22px;color:var(--bad);font-size:13.5px;margin:2px 0 10px}
+  .lead{color:var(--muted);margin:16px 0 28px;font-size:15px;line-height:1.7}
+  .note{color:var(--muted);font-size:12.5px;margin-top:16px;line-height:1.7}
   @media (max-width:900px){body{grid-template-columns:1fr}.brand{display:none}}
   @media (prefers-reduced-motion:reduce){.fan path{animation:none;stroke-dashoffset:0}}
 </style>
@@ -69,7 +83,18 @@
     <button class="chip" id="lng" onclick="toggleLang()">English</button>
     <button class="chip" id="thm" onclick="toggleTheme()">فاتح</button>
   </div>
-  <div class="main">
+  <form class="main" id="authV" onsubmit="doAuth(event)" autocomplete="off">
+    <h1 class="hi" id="aT">تسجيل الدخول</h1>
+    <div class="lead" id="aL">ادخل باسم المستخدم والباسورد بتوعك.</div>
+    <label class="fld"><span>اسم المستخدم</span><div class="in"><input id="u" autocomplete="username" required></div></label>
+    <label class="fld"><span>الباسورد</span><div class="in"><input id="p" type="password" class="pw" autocomplete="current-password" required><button type="button" class="eye" onclick="peek(this)" title="إظهار الباسورد"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div></label>
+    <label class="fld hidden" id="p2w"><span>أكد الباسورد</span><div class="in"><input id="p2" type="password" class="pw" autocomplete="new-password"></div></label>
+    <label class="rem"><input type="checkbox" id="rem" checked> <span>افتكر اسم المستخدم</span></label>
+    <div class="msg" id="msg" role="alert"></div>
+    <button class="btn go" id="aB" type="submit"><span id="aBt">دخول</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+    <div class="note hidden" id="note">الحساب بيتحفظ على الجهاز ده بس. لو نسيت الباسورد، أي حساب تاني على نفس الجهاز يقدر يمسح حسابك ويعمله من جديد من الإعدادات.</div>
+  </form>
+  <div class="main hidden" id="homeV">
     <h1 class="hi">أهلاً، <span id="who" translate="no"></span></h1>
     <div class="date" id="date"></div>
     <div class="mon">
@@ -86,7 +111,7 @@
       <button class="btn sec" onclick="enter('ipc')">تحويل مستخلصات</button>
     </div>
   </div>
-  <div class="foot">
+  <div class="foot hidden" id="foot">
     <label><input type="checkbox" id="show" checked onchange="setShow(this.checked)"> <span>اعرض الشاشة دي لما البرنامج يفتح</span></label>
     <span><kbd>Enter</kbd> <span>للدخول</span></span>
   </div>
@@ -94,40 +119,63 @@
 <script>
 const $=id=>document.getElementById(id);
 const T=s=>window.I18N?I18N.t(s):s;
-let S={};
+let S={}, ST={}, setup=false, inHome=false;
 const AR_D=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const AR_M=['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'];
-async function api(b){ return (await fetch('/api/settings',{method:'POST',body:JSON.stringify(b||{})})).json(); }
+async function state(q){ ST=await (await fetch('/api/auth/state'+(q||''))).json(); return ST; }
 function enter(t){ location.href='/#'+t; }
-document.addEventListener('keydown',e=>{ if(e.key==='Enter') enter('dash'); });
+document.addEventListener('keydown',e=>{ if(inHome && e.key==='Enter') enter('dash'); });
 function expand(p){ const [a,b]=p.split('_to_'); if(!b) return [a]; const o=[]; let [y,m]=a.split('-').map(Number); const [y2,m2]=b.split('-').map(Number);
   while(y<y2||(y===y2&&m<=m2)){ o.push(`${y}-${String(m).padStart(2,'0')}`); m++; if(m>12){m=1;y++;} if(o.length>36) break; } return o; }
 function mark(id,done){ const e=$(id); e.className='st '+(done?'ok':'no'); e.innerHTML=done?`<i class="ic ok"></i>${T('خلص')}`:T('لسه'); }
-function paint(){
-  const en=S.lang==='en', d=new Date();
-  document.documentElement.dataset.theme=S.theme||'dark';
+function chrome(){
+  const en=ST.lang==='en';
+  document.documentElement.dataset.theme=ST.theme||'dark';
+  window.__lang=ST.lang; try{ I18N.apply(ST.lang); }catch(e){}
   $('lng').textContent=en?'عربي':'English';
-  $('thm').textContent=T(S.theme==='light'?'داكن':'فاتح');
-  $('who').textContent=S.user||'';
-  $('ver').textContent=T('الإصدار')+' '+(S.version||'');
-  $('date').textContent=en? d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})
-                          : `${AR_D[d.getDay()]} ${d.getDate()} ${AR_M[d.getMonth()]} ${d.getFullYear()}`;
-  $('monT').textContent=en? d.toLocaleDateString('en-GB',{month:'long',year:'numeric'}) : `${T('الشهر ده')} — ${AR_M[d.getMonth()]}`;
-  $('show').checked=S.welcome!=='off';
+  $('thm').textContent=T(ST.theme==='light'?'داكن':'فاتح');
+  $('ver').textContent=T('الإصدار')+' '+(ST.version||'');
 }
-async function load(){
-  S=await api(); window.__lang=S.lang; paint(); try{ I18N.apply(S.lang); }catch(e){}
-  paint();
+function peek(b){ const i=$('p'); const show=i.type==='password'; i.type=show?'text':'password'; if(setup) $('p2').type=i.type; b.style.color=show?'var(--pri)':''; }
+function showAuth(){
+  inHome=false; $('authV').classList.remove('hidden'); $('homeV').classList.add('hidden'); $('foot').classList.add('hidden');
+  setup=!ST.hasUsers;
+  $('p2w').classList.toggle('hidden',!setup); $('note').classList.toggle('hidden',!setup); $('p2').required=setup;
+  $('aT').textContent=T(setup?'إنشاء حساب':'تسجيل الدخول');
+  $('aL').textContent=T(setup?'أول مرة البرنامج يفتح على الجهاز ده. اختار اسم مستخدم وباسورد، وهتدخل بيهم كل مرة.':'ادخل باسم المستخدم والباسورد بتوعك.');
+  $('aBt').textContent=T(setup?'إنشاء الحساب والدخول':'دخول');
+  if(!setup && ST.lastUser && !$('u').value){ $('u').value=ST.lastUser; $('p').focus(); } else $('u').focus();
+}
+async function doAuth(e){
+  e.preventDefault(); $('msg').textContent='';
+  if(setup && $('p').value!==$('p2').value){ $('msg').textContent=T('الباسورد والتأكيد مش زي بعض'); $('p2').focus(); return; }
+  const b=$('aB'); b.classList.add('busy'); b.disabled=true;
+  try{
+    const r=await fetch(setup?'/api/auth/setup':'/api/auth/login',{method:'POST',body:JSON.stringify({user:$('u').value,pass:$('p').value,remember:$('rem').checked})});
+    const j=await r.json(); if(!r.ok) throw new Error(j.error||'خطأ');
+    if(ST.welcome==='off'){ enter('dash'); return; }
+    await state(); showHome();
+  }catch(err){ $('msg').textContent=T(err.message); $('p').select(); }
+  finally{ b.classList.remove('busy'); b.disabled=false; }
+}
+async function showHome(){
+  inHome=true; $('authV').classList.add('hidden'); $('homeV').classList.remove('hidden'); $('foot').classList.remove('hidden');
+  const en=ST.lang==='en', d=new Date();
+  $('who').textContent=ST.user||'';
+  $('date').textContent=en? d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) : `${AR_D[d.getDay()]} ${d.getDate()} ${AR_M[d.getMonth()]} ${d.getFullYear()}`;
+  $('monT').textContent=en? d.toLocaleDateString('en-GB',{month:'long',year:'numeric'}) : `${T('الشهر ده')} — ${AR_M[d.getMonth()]}`;
+  $('show').checked=ST.welcome!=='off';
   let runs=[]; try{ runs=(await (await fetch('/api/history/list',{method:'POST'})).json()).runs||[]; }catch(e){}
-  const d=new Date(), k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+  const k=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
   mark('s-store',runs.some(r=>r.kind==='store'&&expand(r.period).includes(k)));
   mark('s-cur',runs.some(r=>r.period==='current:'+k));
   mark('s-cum',runs.some(r=>(r.period||'').startsWith('cumulative:'+k)));
 }
-async function toggleLang(){ S=await api({lang:S.lang==='en'?'ar':'en'}); window.__lang=S.lang; try{ I18N.apply(S.lang); }catch(e){} load(); }
-async function toggleTheme(){ S=await api({theme:S.theme==='light'?'dark':'light'}); paint(); }
-async function setShow(on){ S=await api({welcome:on?'on':'off'}); }
-load();
+async function init(q){ await state(q); chrome(); ST.user? showHome() : showAuth(); }
+function toggleLang(){ init('?lang='+(ST.lang==='en'?'ar':'en')); }
+function toggleTheme(){ init('?theme='+(ST.theme==='light'?'dark':'light')); }
+async function setShow(on){ try{ await fetch('/api/settings',{method:'POST',body:JSON.stringify({welcome:on?'on':'off'})}); ST.welcome=on?'on':'off'; }catch(e){} }
+init();
 </script>
 </body>
 </html>
