@@ -113,7 +113,7 @@ const D={
 // ---- 2.3: تكويد تلقائي + شهر بشهر
 "عرض / تعديل الأكواد (اختياري)":"Show / edit codes (optional)","حفظ ملفات PCS… (اختار المكان واسم الفولدر)":"Save PCS files… (choose location and folder name)","جاهز، دوس «تحويل» على طول.":"Ready — just press Convert.",
 "أي كود تغيّره البرنامج بيفتكره، والمرة الجاية نفس الصنف بياخد نفس الكود لوحده.":"The app remembers any code you change; next time the same material gets it automatically.",
-"صنف معروف":"known item","نفس عيلة الكود":"same code family","صنف شبيه":"similar item","من اسم الصنف":"from item name","من القسم":"from section","افتراضي":"default",
+"صنف معروف":"known item","نفس عيلة الكود":"same code family","صنف شبيه":"similar item","من اسم الصنف":"from item name","من القسم":"from section","من قايمة PCS":"from PCS list","افتراضي":"default",
 "إجمالي — مرة واحدة":"Cumulative — one file","ملف واحد: الكمية والقيمة التراكمية لحد تاريخ المستخلص — Cumulative Qty":"One file: cumulative qty and value up to the IPC date — Cumulative Qty",
 "شهر بشهر (تراكمي)":"Month by month (cumulative)","ملف PCS لكل شهر، تراكمي لحد آخر الشهر — ومعاهم ملف مراجعة مجمّع":"One PCS file per month, cumulative to month end — plus one combined review file",
 "اختار الشهور اللي يطلعلها ملف (تاريخ كل مستخلص = آخر الشهر):":"Pick the months to export (each IPC is dated at month end):",

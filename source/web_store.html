@@ -173,7 +173,7 @@ async function prepare(){
   }catch(e){ err('err2',e.message); }
   busy(false);
 }
-const SRC={memory:'ذاكرة',sheet:'من الشيت',known:'صنف معروف',family:'نفس عيلة الكود',similar:'صنف شبيه',rule:'من اسم الصنف',section:'من القسم',default:'افتراضي'};
+const SRC={memory:'ذاكرة',sheet:'من الشيت',known:'صنف معروف',family:'نفس عيلة الكود',similar:'صنف شبيه',rule:'من اسم الصنف',section:'من القسم',pcs:'من قايمة PCS',default:'افتراضي'};
 const SURE=new Set(['memory','sheet','known']);
 function toggleCodes(){ $('codesBox').classList.toggle('hidden'); renderGroups(); }
 function isReview(g){ return (g.needTask && !SURE.has(g.task.src)) || (g.needCost && !SURE.has(g.cost.src)); }
