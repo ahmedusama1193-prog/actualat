@@ -15,7 +15,7 @@ import (
 	"time"
 )
 
-const appVersion = "2.2"
+const appVersion = "2.3"
 
 // مكان ملف التحديثات — بيتظبط لما نربط GitHub (فاضي = التحديث مقفول)
 var updateManifestURL = "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/main/latest.json"
@@ -34,6 +34,9 @@ func updToken() string {
 
 // GET من GitHub API (contents) بالمفتاح؛ لو فشل بيجرب الرابط العام (للنسخ القديمة وقت ما المستودع كان Public)
 func ghGet(c *http.Client, path, ref, fallback string) (*http.Response, error) {
+	if len(updKeyX) == 0 && fallback != "" {
+		return c.Get(fallback) // من غير مفتاح: الرابط العام على طول (الريبو Public)
+	}
 	u := "https://api.github.com/repos/" + updRepo + "/contents/" + path + "?ref=" + ref
 	req, _ := http.NewRequest("GET", u, nil)
 	req.Header.Set("Authorization", "Bearer "+updToken())

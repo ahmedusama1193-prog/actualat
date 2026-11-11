@@ -110,10 +110,27 @@ const D={
 "الملف اللي نزل مش مطابق — جرّب تاني":"The downloaded file doesn't match — try again","متاح على ويندوز بس":"Available on Windows only","خطأ غير متوقع":"Unexpected error",
 "اتحفظ الملف بس مااتسجلش في السجل":"File saved but not recorded in History",
 "مطابق لشيت المخازن":"Matches the store sheet","مطابق لشيت المقاولين":"Matches the subcontractor sheet","في اختلاف — بلّغني":"Mismatch — report it",
+// ---- 2.3: تكويد تلقائي + شهر بشهر
+"عرض / تعديل الأكواد (اختياري)":"Show / edit codes (optional)","حفظ ملفات PCS… (اختار المكان واسم الفولدر)":"Save PCS files… (choose location and folder name)","جاهز، دوس «تحويل» على طول.":"Ready — just press Convert.",
+"أي كود تغيّره البرنامج بيفتكره، والمرة الجاية نفس الصنف بياخد نفس الكود لوحده.":"The app remembers any code you change; next time the same material gets it automatically.",
+"صنف معروف":"known item","نفس عيلة الكود":"same code family","صنف شبيه":"similar item","من اسم الصنف":"from item name","من القسم":"from section","افتراضي":"default",
+"إجمالي — مرة واحدة":"Cumulative — one file","ملف واحد: الكمية والقيمة التراكمية لحد تاريخ المستخلص — Cumulative Qty":"One file: cumulative qty and value up to the IPC date — Cumulative Qty",
+"شهر بشهر (تراكمي)":"Month by month (cumulative)","ملف PCS لكل شهر، تراكمي لحد آخر الشهر — ومعاهم ملف مراجعة مجمّع":"One PCS file per month, cumulative to month end — plus one combined review file",
+"اختار الشهور اللي يطلعلها ملف (تاريخ كل مستخلص = آخر الشهر):":"Pick the months to export (each IPC is dated at month end):",
+"تاريخ المستخلص":"IPC date","مستخلصات":"IPCs","سطور":"Lines","الصافي التراكمي":"Cumulative net","حركة الشهر":"Month movement","المحتجز التراكمي":"Cumulative retention",
+"لما تدوس حفظ: اختار المكان واسم الفولدر، والبرنامج هيحط فيه ملف PCS لكل شهر + ملف المراجعة المجمّع، وكل شهر هيتسجل في السجل لوحده.":"When you save: pick a location and folder name; the app puts one PCS file per month plus the combined review file in it, and records each month in History.",
+"وكل شهر اتسجل في السجل لوحده.":"Each month was recorded in History.",
+"لكل شهر: الكمية التراكمية = مجموع أعمدة الشهور لحد الشهر ده × الفئة، والمحتجز = نسبة الضمان × القيمة. آخر شهر بيطلع نفس «مرة واحدة» بالظبط. رقم المستخلص = آخر رقم في الشيت ناقص عدد الشهور اللي فيها حركة بعده.":"For each month: cumulative qty = sum of the month columns up to that month × rate, and retention = retention % × value. The last month comes out exactly like “one file”. IPC No = the sheet's latest number minus the months with movement after it.",
 "كود مش في القايمة":"code not in the list","كود مش في قايمة PCS":"code not in the PCS list","البرنامج عارف شكل الشيت ده من قبل وربط الأعمدة لوحده. راجعها ودوس التالي.":"The app knows this sheet layout and mapped the columns itself. Review and click Next."
 };
 // عبارات بتتبدل جوه نص أطول (الأطول الأول) — للنصوص اللي فيها أرقام
 const P={
+"البرنامج كوّد":"The app coded","صنف لوحده":"items automatically","(مالهمش Task Code أو Cost Code في الشيت) —":"(no Task Code or Cost Code in the sheet) —",
+"كل الأكواد اللي اتحطت هتلاقيها في ملف المراجعة (شيت «الأكواد»).":"All assigned codes are listed in the review file (sheet “الأكواد”).",
+"صنف اتكوّد تلقائي — تفاصيلهم في شيت «الأكواد» في ملف المراجعة.":"items were coded automatically — details in the “الأكواد” sheet of the review file.",
+"ملف — كل شهر مطابق لشيت المقاولين":"files — every month matches the subcontractor sheet","، وآخر شهر = إجمالي الشيت":", and the last month = sheet total",
+"صافي آخر ملف":"Net of last file","المحتجز (شيت / آخر ملف)":"Retention (sheet / last file)","لحد":"up to","حركة":"movement",
+"ملف PCS + ملف المراجعة المجمّع في:":"PCS files + the combined review file saved in:","اتحفظ":"Saved",
 "صنف في الشيت · إجمالي القيمة":"items in the sheet · total value","صنف مالهمش Task Code أو Cost Code في الشيت، فالبرنامج حطلهم أكواد.":"items have no Task Code or Cost Code in the sheet, so the app assigned codes.",
 "منهم مقترحين ومحتاجين مراجعة منك (الصفوف الملونة).":"of them are suggestions that need your review (coloured rows).","منهم مقترحين ومحتاجين مراجعة (الصفوف الملونة).":"of them are suggestions that need review (coloured rows).",
 "كلهم من الذاكرة":"all from memory","قايمة الأكواد: من الملف نفسه":"Code list: from the file itself","قايمة الأكواد: آخر قايمة استخدمتها":"Code list: the last list you used",

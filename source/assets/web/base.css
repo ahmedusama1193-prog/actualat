@@ -47,7 +47,7 @@ input.code{width:118px;direction:ltr;text-align:left}
 .stat b{font-size:17px;display:block}
 .hidden{display:none!important}
 .busy{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;font-size:17px;z-index:10}
-.modes{display:grid;grid-template-columns:1fr 1fr;gap:10px;max-width:780px}
+.modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;max-width:1040px}
 .mode{border-radius:12px;padding:12px 14px;cursor:pointer;display:flex;gap:10px;align-items:flex-start}
 .mode .l{font-weight:600;font-size:15px} .mode .s{color:var(--muted);font-size:12.5px;margin-top:2px}
 .fields{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;align-items:center}

@@ -76,6 +76,8 @@ type state struct {
 	opts   Opts
 	out    []byte
 	review []byte
+	// شهر بشهر
+	monthly []*monthOut
 }
 
 var st = &state{}
@@ -189,11 +191,12 @@ func hConvert(w http.ResponseWriter, r *http.Request) {
 		fail(w, fmt.Errorf("اختار الملف الأول"))
 		return
 	}
+	monthly := o.Mode == "monthly"
 	if o.Mode == "current" && o.Month == "" {
 		fail(w, fmt.Errorf("اختار الشهر"))
 		return
 	}
-	if _, err := time.Parse("2006-01-02", o.Date); err != nil {
+	if _, err := time.Parse("2006-01-02", o.Date); err != nil && !monthly {
 		fail(w, fmt.Errorf("تاريخ المستخلص مش مظبوط"))
 		return
 	}
@@ -213,6 +216,11 @@ func hConvert(w http.ResponseWriter, r *http.Request) {
 	}
 	mem.mu.Unlock()
 	saveMem()
+	st.monthly = nil
+	if monthly {
+		convertMonthly(w, o)
+		return
+	}
 	res := st.rep.Convert(st.cl, o)
 	out, err := WritePCS(res)
 	if err != nil {
@@ -255,6 +263,10 @@ func ipcPeriod(o Opts) string {
 }
 
 func hSave(w http.ResponseWriter, r *http.Request) {
+	if len(st.monthly) > 0 {
+		saveMonthly(w)
+		return
+	}
 	if st.out == nil {
 		fail(w, fmt.Errorf("دوس تحويل الأول"))
 		return

@@ -718,9 +718,10 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Slice(months, func(i, j int) bool { return months[i].Key < months[j].Key })
 
-	// المجموعات اللي ناقصها أكواد
+	// المجموعات اللي ناقصها أكواد — البرنامج بيكوّدها لوحده (autocode.go)
 	sst.groups = map[string]*sGroup{}
 	var groups []*sGroup
+	ac := sst.newAutoCoder()
 	for _, x := range sst.parsed {
 		nt, nc := x.Task == "", x.Cost == ""
 		if !nt && !nc {
@@ -730,7 +731,7 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 		if g == nil {
 			g = &sGroup{Key: x.key, Code: x.Code, Desc: x.label(), NeedTask: nt, NeedCost: nc}
 			g.Section = x.Section
-			g.Task, g.Cost = sst.suggestCodes(x)
+			g.Task, g.Cost = ac.code(x)
 			sst.groups[x.key] = g
 			groups = append(groups, g)
 		}
@@ -742,8 +743,12 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 	for _, g := range groups {
 		g.Amount = r2(g.Amount)
 	}
+	srcCount := map[string]int{}
+	for _, g := range groups {
+		srcCount[g.Task.Src]++
+	}
 	writeJSON(w, 200, map[string]interface{}{"rows": len(sst.parsed), "amount": r2(total), "months": months, "noDate": noDate,
-		"groups": groups, "codes": sst.cl, "codesFrom": sst.clSrc})
+		"groups": groups, "codes": sst.cl, "codesFrom": sst.clSrc, "autoSrc": srcCount})
 }
 
 // ------------------------------------------------------------------ convert
@@ -821,6 +826,16 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 	smem.mu.Unlock()
 	saveStoreMem()
 
+	ac := sst.newAutoCoder()
+	type codeLine struct {
+		x          *sRow
+		task, cost string
+		tSrc, cSrc string
+		rows       int
+		amt        float64
+	}
+	codeLines := map[string]*codeLine{}
+	var codeOrder []string
 	var outs []sOut
 	var revs []sReview
 	var shItems int
@@ -859,12 +874,27 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		shQty += x.Qty
 		shAmt += x.amount()
 		task, cost := x.Task, x.Cost
+		tSrc, cSrc := "sheet-col", "sheet-col"
 		if g := b.Codes[x.key]; g != nil {
+			if task == "" && g["task"] != "" {
+				task, tSrc = g["task"], "user"
+			}
+			if cost == "" && g["cost"] != "" {
+				cost, cSrc = g["cost"], "user"
+			}
+		}
+		if task == "" || cost == "" {
+			var tp, cp Pick
+			if g := sst.groups[x.key]; g != nil {
+				tp, cp = g.Task, g.Cost
+			} else {
+				tp, cp = ac.code(x)
+			}
 			if task == "" {
-				task = g["task"]
+				task, tSrc = tp.Code, tp.Src
 			}
 			if cost == "" {
-				cost = g["cost"]
+				cost, cSrc = cp.Code, cp.Src
 			}
 		}
 		if x.Qty == 0 {
@@ -898,6 +928,16 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		outs = append(outs, sOut{x, d, task, cost, strings.Join(rem, " | ")})
+		if tSrc != "sheet-col" || cSrc != "sheet-col" {
+			cl := codeLines[x.key]
+			if cl == nil {
+				cl = &codeLine{x: x, task: task, cost: cost, tSrc: tSrc, cSrc: cSrc}
+				codeLines[x.key] = cl
+				codeOrder = append(codeOrder, x.key)
+			}
+			cl.rows++
+			cl.amt += x.amount()
+		}
 		k := d.Format("2006-01")
 		if byM[k] == nil {
 			byM[k] = &mb{}
@@ -1048,6 +1088,33 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		rr = append(rr, line)
 	}
 	put("مراجعة", rr, []float64{10, 50, 12, 12, 16, 40, 30, 8, 10, 12, 14, 12, 12})
+	// الأكواد اللي البرنامج حطها لوحده
+	if len(codeOrder) > 0 {
+		sort.SliceStable(codeOrder, func(i, j int) bool { return codeLines[codeOrder[i]].amt > codeLines[codeOrder[j]].amt })
+		desc := func(m map[string]*Code, c string) string {
+			if v := m[c]; v != nil {
+				if v.AR != "" {
+					return v.AR
+				}
+				return v.EN
+			}
+			return ""
+		}
+		var byT, byC map[string]*Code
+		if sst.cl != nil {
+			byT, byC = sst.cl.byT, sst.cl.byC
+		}
+		cr := [][]interface{}{{"كود الصنف", "الصنف", "القسم", "عدد السطور", "القيمة", "Task Code", "وصف Task", "Cost Code", "وصف Cost", "مصدر الكود"}}
+		for _, k := range codeOrder {
+			c := codeLines[k]
+			src := autoSrcLabel(c.tSrc)
+			if c.cSrc != c.tSrc {
+				src += " / " + autoSrcLabel(c.cSrc)
+			}
+			cr = append(cr, []interface{}{c.x.Code, c.x.label(), c.x.Section, c.rows, r2(c.amt), c.task, desc(byT, c.task), c.cost, desc(byC, c.cost), src})
+		}
+		put("الأكواد", cr, []float64{14, 44, 14, 10, 14, 12, 30, 12, 34, 24})
+	}
 	rv.DeleteSheet("Sheet1")
 	rb, _ := rv.WriteToBuffer()
 	rv.Close()
@@ -1068,7 +1135,8 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		"sheetItems": shItems, "sheetQty": r2(shQty), "sheetAmount": r2(shAmt),
 		"items": len(outs), "qty": r2(oQty), "amount": r2(oAmt), "byMonth": bm,
 		"noRate": noRate, "noTask": noTask, "noCost": noCost, "excluded": exQty + exCost, "excludedNoDate": exDate,
-		"previous": samePeriod("store", tag),
+		"autoCoded": len(codeOrder),
+		"previous":  samePeriod("store", tag),
 	})
 }
 

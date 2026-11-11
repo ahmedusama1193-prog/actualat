@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=22">
-<link rel="stylesheet" href="/assets/theme.css?v=22">
-<script src="/assets/i18n.js?v=22"></script>
+<link rel="stylesheet" href="/assets/base.css?v=23">
+<link rel="stylesheet" href="/assets/theme.css?v=23">
+<script src="/assets/i18n.js?v=23"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 </head>
 <body>
@@ -52,6 +52,8 @@
   <div id="s4" class="card hidden">
     <div class="step"><span class="num">04</span> Task Code و Cost Code</div>
     <div id="codesNote" class="small" style="margin-bottom:10px"></div>
+    <div class="row" style="margin-bottom:6px"><button class="link" id="codesToggle" onclick="toggleCodes()">عرض / تعديل الأكواد (اختياري)</button></div>
+    <div id="codesBox" class="hidden">
     <div class="row" style="margin-bottom:8px">
       <span class="chip on" id="fltNeed" onclick="setFilter('need')">محتاج مراجعة</span>
       <span class="chip" id="fltAll" onclick="setFilter('all')">الكل</span>
@@ -60,7 +62,8 @@
     </div>
     <div class="scroll"><table><thead><tr><th>كود الصنف</th><th>الصنف</th><th>القسم</th><th>القيمة</th><th>Task Code</th><th>Cost Code</th><th>المصدر</th></tr></thead><tbody id="grpBody"></tbody></table></div>
     <datalist id="dlTask" translate="no"></datalist><datalist id="dlCost" translate="no"></datalist>
-    <div class="muted small" style="margin-top:8px">الأكواد اللي بتختارها البرنامج بيفتكرها، والمرة الجاية نفس الصنف بياخد نفس الكود لوحده.</div>
+    <div class="muted small" style="margin-top:8px">أي كود تغيّره البرنامج بيفتكره، والمرة الجاية نفس الصنف بياخد نفس الكود لوحده.</div>
+    </div>
   </div>
 
   <!-- 5 -->
@@ -156,26 +159,30 @@ async function prepare(){
     $('dlTask').innerHTML=prep.codes.task.map(c=>`<option value="${esc(c.code)}">${esc(c.code+' — '+(c.ar||c.en))}</option>`).join('');
     $('dlCost').innerHTML=prep.codes.cost.map(c=>`<option value="${esc(c.code)}">${esc(c.code+' — '+(c.ar||c.en))}</option>`).join('');
     groups=prep.groups||[];
-    groups.forEach(g=>{ g.t=g.needTask?(g.task.code||''):null; g.c=g.needCost?(g.cost.code||''):null; });
+    groups.forEach(g=>{ g.t=g.needTask?(g.task.code||''):null; g.c=g.needCost?(g.cost.code||''):null; g.edited=false; });
     if(groups.length){
-      const sug=groups.filter(isReview).length;
-      $('codesNote').innerHTML=`<b>${fmt(groups.length)}</b> صنف مالهمش Task Code أو Cost Code في الشيت، فالبرنامج حطلهم أكواد. `+
-        (sug?`<span style="color:var(--warn)"><b>${fmt(sug)}</b> منهم مقترحين ومحتاجين مراجعة منك (الصفوف الملونة).</span>`:'<span class="ok"><i class="ic ok"></i>كلهم من الذاكرة</span>')+
-        ` <span class="muted">قايمة الأكواد: ${prep.codesFrom==='file'?'من الملف نفسه':'آخر قايمة استخدمتها'} (${prep.codes.task.length} Task · ${prep.codes.cost.length} Cost)</span>`;
-      setFilter(sug?'need':'all'); show('s4');
+      const cnt={}; groups.forEach(g=>{ const k=g.needTask?g.task.src:g.cost.src; cnt[k]=(cnt[k]||0)+1; });
+      const parts=Object.keys(SRC).filter(k=>cnt[k]).map(k=>`${SRC[k]} <b>${fmt(cnt[k])}</b>`).join(' · ');
+      $('codesNote').innerHTML=`<span class="ok"><i class="ic ok"></i>البرنامج كوّد <b>${fmt(groups.length)}</b> صنف لوحده</span> (مالهمش Task Code أو Cost Code في الشيت) — <span>جاهز، دوس «تحويل» على طول.</span>`+
+        `<div class="muted" style="margin-top:4px">${parts}</div>`+
+        `<div class="muted">كل الأكواد اللي اتحطت هتلاقيها في ملف المراجعة (شيت «الأكواد»). قايمة الأكواد: ${prep.codesFrom==='file'?'من الملف نفسه':'آخر قايمة استخدمتها'} (${prep.codes.task.length} Task · ${prep.codes.cost.length} Cost)</div>`;
+      hide('codesBox'); setFilter('all'); show('s4');
     } else hide('s4');
     show('s5'); hide('result');
     $('s3').scrollIntoView({behavior:'smooth'});
   }catch(e){ err('err2',e.message); }
   busy(false);
 }
-function isReview(g){ return (g.needTask && g.task.src!=='memory') || (g.needCost && g.cost.src!=='memory'); }
+const SRC={memory:'ذاكرة',sheet:'من الشيت',known:'صنف معروف',family:'نفس عيلة الكود',similar:'صنف شبيه',rule:'من اسم الصنف',section:'من القسم',default:'افتراضي'};
+const SURE=new Set(['memory','sheet','known']);
+function toggleCodes(){ $('codesBox').classList.toggle('hidden'); renderGroups(); }
+function isReview(g){ return (g.needTask && !SURE.has(g.task.src)) || (g.needCost && !SURE.has(g.cost.src)); }
 function setFilter(f){ filter=f; $('fltNeed').classList.toggle('on',f==='need'); $('fltAll').classList.toggle('on',f==='all'); renderGroups(); }
 function tagOf(p){
   if(!p) return '';
-  if(p.src==='memory') return '<span class="tag mem">ذاكرة</span>';
-  if(p.src==='suggest') return `<span class="tag sug">مقترح ${Math.round(p.score*100)}%</span>`;
-  return '<span class="tag none">مش لاقي</span>';
+  if(SURE.has(p.src)) return `<span class="tag mem">${SRC[p.src]}</span>`;
+  if(p.src==='default') return '<span class="tag none">افتراضي</span>';
+  return `<span class="tag sug">${SRC[p.src]||'مقترح'}</span>`;
 }
 function renderGroups(){
   const q=$('q').value.trim().toLowerCase();
@@ -184,8 +191,8 @@ function renderGroups(){
   const shown=list.slice(0,800);
   $('grpBody').innerHTML=shown.map(g=>{
     const i=groups.indexOf(g);
-    const low=(p,need)=>need && p.src!=='memory';
-    const cls=(g.needTask&&g.task.src==='none')||(g.needCost&&g.cost.src==='none')?'r':(low(g.task,g.needTask)||low(g.cost,g.needCost)?'y':'');
+    const low=(p,need)=>need && !SURE.has(p.src);
+    const cls=(g.needTask&&g.task.src==='default')||(g.needCost&&g.cost.src==='default')?'r':(low(g.task,g.needTask)||low(g.cost,g.needCost)?'y':'');
     const cell=(need,val,dl,map,k)=> need ? `<input class="code" list="${dl}" value="${esc(val)}" data-i="${i}" data-k="${k}" oninput="setCode(this)"><span class="cdesc" translate="no">${esc(map[val]||'')}</span>` : '<span class="muted small">من الشيت</span>';
     return `<tr class="${cls}"><td class="n" translate="no">${esc(g.code)}</td><td translate="no">${esc(g.desc)}</td><td class="small" translate="no">${esc(g.section)}</td><td class="n">${fmt(g.amount)}</td>
       <td>${cell(g.needTask,g.t,'dlTask',taskMap,'t')}</td><td>${cell(g.needCost,g.c,'dlCost',costMap,'c')}</td>
@@ -197,7 +204,7 @@ function setCode(inp){
   g[inp.dataset.k]=v;
   const map=inp.dataset.k==='t'?taskMap:costMap;
   inp.nextElementSibling.textContent=map[v]||(v?'كود مش في القايمة':''); inp.nextElementSibling.style.color=(v&&!map[v])?'var(--warn)':'';
-  const p=inp.dataset.k==='t'?g.task:g.cost; p.src='memory'; // reviewed by user
+  const p=inp.dataset.k==='t'?g.task:g.cost; p.src='memory'; g.edited=true; // reviewed by user
 }
 function pickAll(v){ document.querySelectorAll('#months input').forEach(i=>{i.checked=v;i.parentNode.classList.toggle('on',v);}); }
 
@@ -207,7 +214,8 @@ async function convert(){
   const months=[...document.querySelectorAll('#months input:checked')].map(i=>i.value);
   const body={months,codes:{}};
   const on=$('ndOn'); if(on&&on.checked) body.noDateDate=$('ndDate').value;
-  groups.forEach(g=>{ body.codes[g.key]={task:g.t||'',cost:g.c||''}; });
+  // الأكواد اللي انت غيرتها بس — الباقي البرنامج بيكوّده لوحده
+  groups.forEach(g=>{ if(g.edited) body.codes[g.key]={task:g.t||'',cost:g.c||''}; });
   $('go').disabled=true; busy(true);
   try{
     const j=await api('/api/convert',body);
@@ -219,6 +227,7 @@ async function convert(){
       (j.byMonth||[]).map(m=>`<tr class="small"><td class="muted">${esc(m.label)}</td><td class="n">${fmt(m.rows)}</td><td class="n">${fmt(m.qty)}</td><td class="n">${fmt(m.amount)}</td></tr>`).join('');
     const notes=[];
     if(j.noRate) notes.push(`${fmt(j.noRate)} بند مالهمش سعر في الشيت — اتنقلوا بالكمية والقيمة زي ما هما.`);
+    if(j.autoCoded) notes.push(`${fmt(j.autoCoded)} صنف اتكوّد تلقائي — تفاصيلهم في شيت «الأكواد» في ملف المراجعة.`);
     if(j.noTask) notes.push(`${fmt(j.noTask)} بند من غير Task Code.`);
     if(j.noCost) notes.push(`${fmt(j.noCost)} بند من غير Cost Code.`);
     if(j.previous&&j.previous.length) notes.unshift(`<span style="color:var(--warn)"><i class="ic warn"></i>الفترة دي اتصدّرت قبل كده ${j.previous.length} مرة (آخر مرة ${esc(j.previous[0].created)}) — اتأكد إنك مش هتستوردها في PCS مرتين.</span>`);

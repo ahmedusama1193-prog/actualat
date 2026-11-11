@@ -335,11 +335,13 @@ func (rep *Report) Groups(cl *CodeLists) []*CodeGroup {
 
 // ------------------------------------------------------------------ convert
 type Opts struct {
-	Mode  string               `json:"mode"`  // cumulative | current
-	Month string               `json:"month"` // for current
-	Date  string               `json:"date"`  // IPC date yyyy-mm-dd
-	VAT   float64              `json:"vat"`
-	Codes map[string][2]string `json:"codes"` // group key -> task,cost
+	Mode   string               `json:"mode"`   // cumulative | current | monthly
+	Month  string               `json:"month"`  // for current
+	Months []string             `json:"months"` // for monthly: الشهور اللي يطلعلها ملف (تراكمي لحد آخر كل شهر)
+	UpTo   string               `json:"-"`      // تراكمي لحد آخر الشهر ده بس (فاضي = كل الشيت)
+	Date   string               `json:"date"`   // IPC date yyyy-mm-dd
+	VAT    float64              `json:"vat"`
+	Codes  map[string][2]string `json:"codes"` // group key -> task,cost
 }
 
 type OutRow map[string]interface{}
@@ -467,10 +469,35 @@ func (rep *Report) Convert(cl *CodeLists, o Opts) *Result {
 		o.VAT = 15
 	}
 	cur := o.Mode == "current"
+	upTo := ""
+	if !cur {
+		upTo = o.UpTo
+	}
 	if cur {
 		res.Label = "حالي " + monthLabel(o.Month)
 	} else {
 		res.Label = "إجمالي حتى " + o.Date
+	}
+	// تراكمي لحد شهر معين: البند "كامل" لو مالوش حركة بعد الشهر ده — ساعتها بناخد أرقام الشيت زي ما هي بالظبط
+	complete := func(it *Item) bool {
+		if upTo == "" {
+			return true
+		}
+		for k, v := range it.ByMonth {
+			if k > upTo && v != 0 {
+				return false
+			}
+		}
+		return true
+	}
+	qtyUpTo := func(it *Item) float64 {
+		var q float64
+		for k, v := range it.ByMonth {
+			if k <= upTo {
+				q += v
+			}
+		}
+		return q
 	}
 	cnos, fresh := rep.contractNos(o)
 	res.newCnos = fresh
@@ -480,10 +507,13 @@ func (rep *Report) Convert(cl *CodeLists, o Opts) *Result {
 			if cur {
 				return it.ByMonth[o.Month]
 			}
+			if !complete(it) {
+				return qtyUpTo(it)
+			}
 			return it.Qty
 		}
 		amtOf := func(it *Item) float64 {
-			if cur {
+			if cur || !complete(it) {
 				rate := it.Rate
 				if !it.HasRate && it.Qty != 0 {
 					rate = it.Amount / it.Qty
@@ -491,6 +521,19 @@ func (rep *Report) Convert(cl *CodeLists, o Opts) *Result {
 				return qtyOf(it) * rate
 			}
 			return it.Amount
+		}
+		// رقم المستخلص لحد الشهر ده = أكبر رقم في الشيت − عدد الشهور اللي فيها حركة بعده
+		later := 0
+		if upTo != "" {
+			mv := map[string]bool{}
+			for _, it := range c.Items {
+				for k, v := range it.ByMonth {
+					if k > upTo && v != 0 {
+						mv[k] = true
+					}
+				}
+			}
+			later = len(mv)
 		}
 		var gross, ded, ret float64
 		ipc := 0
@@ -512,12 +555,18 @@ func (rep *Report) Convert(cl *CodeLists, o Opts) *Result {
 			if it.IPC > ipc {
 				ipc = it.IPC
 			}
-			if cur {
+			if cur || !complete(it) {
 				if it.HasRet {
 					ret += a * it.Ret
 				}
 			} else {
 				ret += it.RetAmt
+			}
+		}
+		if ipc > 0 && later > 0 {
+			ipc -= later
+			if ipc < 1 {
+				ipc = 1
 			}
 		}
 		res.SheetNet += gross - ded
@@ -576,6 +625,9 @@ func (rep *Report) Convert(cl *CodeLists, o Opts) *Result {
 			if cur && q == 0 {
 				continue
 			}
+			if !cur && q == 0 && !complete(it) {
+				continue // مالوش كمية لحد الشهر ده (حركته بعدين)
+			}
 			if !cur && rate == 0 && it.Amount == 0 && it.Qty == 0 {
 				res.Skips = append(res.Skips, Skip{c.Contractor, it.Row, it.Desc, 0, "بند بدون فئة وبدون كمية"})
 				continue
@@ -602,7 +654,7 @@ func (rep *Report) Convert(cl *CodeLists, o Opts) *Result {
 			if it.SrcCost != "" {
 				cc = it.SrcCost
 			}
-			if !cur && math.Abs(it.Amount-it.Qty*rate) > 0.5 {
+			if !cur && complete(it) && math.Abs(it.Amount-it.Qty*rate) > 0.5 {
 				res.Warnings = append(res.Warnings, Skip{c.Contractor, it.Row, it.Desc, r2(it.Amount), fmt.Sprintf("القيمة ≠ الكمية × الفئة (فرق %.2f) — اتنقلت القيمة زي ما هي", it.Amount-it.Qty*rate)})
 			}
 			if q < 0 {

@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>المستخلصات</title>
-<link rel="stylesheet" href="/assets/base.css?v=22">
-<link rel="stylesheet" href="/assets/theme.css?v=22">
-<script src="/assets/i18n.js?v=22"></script>
+<link rel="stylesheet" href="/assets/base.css?v=23">
+<link rel="stylesheet" href="/assets/theme.css?v=23">
+<script src="/assets/i18n.js?v=23"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 </head>
 <body>
@@ -30,13 +30,22 @@
     <div class="step"><span class="num">02</span> نوع المستخلص</div>
     <div class="modes">
       <label class="mode on" id="mCum"><input type="radio" name="mode" value="cumulative" checked onchange="setMode()">
-        <div><div class="l">إجمالي (تراكمي)</div><div class="s">الكمية والقيمة التراكمية لحد تاريخ المستخلص — Cumulative Qty</div></div></label>
+        <div><div class="l">إجمالي — مرة واحدة</div><div class="s">ملف واحد: الكمية والقيمة التراكمية لحد تاريخ المستخلص — Cumulative Qty</div></div></label>
+      <label class="mode" id="mMon"><input type="radio" name="mode" value="monthly" onchange="setMode()">
+        <div><div class="l">شهر بشهر (تراكمي)</div><div class="s">ملف PCS لكل شهر، تراكمي لحد آخر الشهر — ومعاهم ملف مراجعة مجمّع</div></div></label>
       <label class="mode" id="mCur"><input type="radio" name="mode" value="current" onchange="setMode()">
         <div><div class="l">حالي (شهر واحد)</div><div class="s">كمية الشهر اللي تختاره بس — Qty This IPC</div></div></label>
     </div>
+    <div id="monthsWrap" class="hidden" style="margin:6px 0 10px">
+      <div class="row" style="justify-content:space-between;margin-bottom:8px">
+        <span class="muted small">اختار الشهور اللي يطلعلها ملف (تاريخ كل مستخلص = آخر الشهر):</span>
+        <span><button class="link" onclick="pickMonths(true)">اختار الكل</button> · <button class="link" onclick="pickMonths(false)">إلغاء الكل</button></span>
+      </div>
+      <div id="monthsList" class="months"></div>
+    </div>
     <div class="fields">
       <label id="monthWrap" class="hidden">الشهر: <select id="monthSel" onchange="monthChanged()"></select></label>
-      <label>تاريخ المستخلص: <input type="date" id="ipcDate"></label>
+      <label id="dateWrap">تاريخ المستخلص: <input type="date" id="ipcDate"></label>
       <label>VAT %: <input type="number" id="vat" value="15" min="0" max="100" style="width:70px"></label>
     </div>
     <div id="modeNote" class="small muted" style="margin-top:10px"></div>
@@ -74,9 +83,10 @@
     <div id="result" class="hidden" style="margin-top:16px">
       <div id="checkLine" class="check"></div>
       <table id="recon" style="max-width:760px"></table>
+      <div id="monTable" class="scroll hidden" style="margin-top:12px;max-height:420px"></div>
       <div id="resNotes" class="small" style="margin:10px 0 14px"></div>
       <div class="row" style="margin-bottom:14px">
-        <button class="btn" onclick="saveFile()">حفظ ملف PCS… (اختار المكان)</button>
+        <button class="btn" id="saveBtn" onclick="saveFile()">حفظ ملف PCS… (اختار المكان)</button>
         <span id="saved" class="ok small"></span>
       </div>
       <details><summary class="link">تفاصيل المستخلصات (<span id="conCount"></span>)</summary>
@@ -132,6 +142,7 @@ async function showInfo(j){
   show('stats1');
   // months
   $('monthSel').innerHTML=j.months.slice().reverse().map(m=>`<option value="${m.key}" ${m.key===j.cutoff?'selected':''}>${m.label} — ${fmt(m.amount)}</option>`).join('');
+  $('monthsList').innerHTML=j.months.filter(m=>!j.cutoff||m.key<=j.cutoff).map(m=>`<label class="m on"><input type="checkbox" value="${m.key}" checked onchange="this.parentNode.classList.toggle('on',this.checked);hide('result')"><div><div class="l">${m.label}</div><div class="s">حركة ${fmt(m.amount)}</div></div></label>`).join('');
   setDateFor(j.cutoff); setMode();
   show('s2');
   // codes
@@ -156,14 +167,18 @@ function setDateFor(key){
 }
 function mode(){ return document.querySelector('input[name=mode]:checked').value; }
 function setMode(){
-  const cur=mode()==='current';
-  $('mCum').classList.toggle('on',!cur); $('mCur').classList.toggle('on',cur);
+  const md=mode(), cur=md==='current', mon=md==='monthly';
+  $('mCum').classList.toggle('on',md==='cumulative'); $('mMon').classList.toggle('on',mon); $('mCur').classList.toggle('on',cur);
   $('monthWrap').classList.toggle('hidden',!cur);
+  $('monthsWrap').classList.toggle('hidden',!mon);
+  $('dateWrap').classList.toggle('hidden',mon);
   if(cur) setDateFor($('monthSel').value); else setDateFor(info.cutoff);
   $('modeNote').textContent = cur ? 'هيتنقل كل بند ليه كمية في الشهر ده بس، والمحتجز = نسبة الضمان × قيمة الشهر.'
+    : mon ? 'لكل شهر: الكمية التراكمية = مجموع أعمدة الشهور لحد الشهر ده × الفئة، والمحتجز = نسبة الضمان × القيمة. آخر شهر بيطلع نفس «مرة واحدة» بالظبط. رقم المستخلص = آخر رقم في الشيت ناقص عدد الشهور اللي فيها حركة بعده.'
     : 'هتتنقل الكمية والقيمة التراكمية والمحتجز التراكمي زي ما هما في الشيت. المقاولين اللي مالهمش مستخلص بيتشالوا.';
   hide('result');
 }
+function pickMonths(v){ document.querySelectorAll('#monthsList input').forEach(i=>{i.checked=v;i.parentNode.classList.toggle('on',v);}); hide('result'); }
 function monthChanged(){ setDateFor($('monthSel').value); hide('result'); }
 
 // ---------- 3: codes ----------
@@ -208,12 +223,18 @@ async function convert(){
   err('err4'); $('saved').textContent='';
   const body={mode:mode(),month:$('monthSel').value,date:$('ipcDate').value,vat:parseFloat($('vat').value)||15,codes:{}};
   if(mode()!=='current') body.month='';
+  if(mode()==='monthly'){
+    body.months=[...document.querySelectorAll('#monthsList input:checked')].map(i=>i.value);
+    if(!body.months.length){ err('err4','اختار شهر واحد على الأقل'); return; }
+  }
   groups.forEach(g=>body.codes[g.key]=[g.t||'',g.c||'']);
   const bad=groups.filter(g=>(g.t&&!taskMap[g.t])||(g.c&&!costMap[g.c]));
   if(bad.length && !confirm(`في ${bad.length} كود مش موجود في قايمة PCS. تكمّل؟`)) return;
   $('go').disabled=true; busy(true);
   try{
     const j=await api('/api/ipc/convert',body); const r=j.result;
+    if(j.monthly){ showMonthly(j); return; }
+    hide('monTable'); $('saveBtn').textContent='حفظ ملف PCS… (اختار المكان)';
     $('checkLine').className='check '+(r.match?'good':'bad');
     $('checkLine').innerHTML=r.match?'<i class="ic ok"></i>مطابق لشيت المقاولين':'<i class="ic no"></i>في اختلاف — بلّغني';
     $('recon').innerHTML=`<tr><th></th><th>القيمة</th></tr>
@@ -237,8 +258,29 @@ async function convert(){
   }catch(e){ err('err4',e.message); }
   $('go').disabled=false; busy(false);
 }
+function showMonthly(j){
+  const ms=j.monthly, last=ms[ms.length-1], r=j.result;
+  $('checkLine').className='check '+(j.match?'good':'bad');
+  $('checkLine').innerHTML=j.match?`<i class="ic ok"></i>${fmt(ms.length)} ملف — كل شهر مطابق لشيت المقاولين`+(last.key===j.cutoff?'<span>، وآخر شهر = إجمالي الشيت</span>':''):'<i class="ic no"></i>في اختلاف — بلّغني';
+  $('recon').innerHTML=`<tr><th></th><th>القيمة</th></tr>
+    <tr><td>صافي الأعمال في شيت المقاولين (لحد ${esc(info.cutoffLabel)})</td><td class="n">${fmt(j.sheetNet)}</td></tr>
+    <tr><td>صافي آخر ملف (${esc(last.label)})</td><td class="n"><b>${fmt(last.net)}</b></td></tr>
+    <tr class="small"><td class="muted">المحتجز (شيت / آخر ملف)</td><td class="n">${fmt(j.sheetRet)} / ${fmt(last.ret)}</td></tr>`;
+  $('monTable').innerHTML=`<table><thead><tr><th>الشهر</th><th>تاريخ المستخلص</th><th>مستخلصات</th><th>سطور</th><th>الصافي التراكمي</th><th>حركة الشهر</th><th>المحتجز التراكمي</th></tr></thead><tbody>`+
+    ms.map(m=>`<tr><td>${esc(m.label)}</td><td class="n">${esc(m.date)}</td><td class="n">${fmt(m.contracts)}</td><td class="n">${fmt(m.lines)}</td><td class="n">${fmt(m.net)}</td><td class="n">${fmt(m.move)}</td><td class="n">${fmt(m.ret)}</td></tr>`).join('')+'</tbody></table>';
+  show('monTable'); $('saveBtn').textContent='حفظ ملفات PCS… (اختار المكان واسم الفولدر)';
+  const notes=[];
+  const sk=(r.skips||[]).filter(s=>s.amount); if(sk.length) notes.push(`${sk.length} عقد اتشال لأن مالوش مستخلص (التفاصيل في ملف المراجعة).`);
+  notes.push('لما تدوس حفظ: اختار المكان واسم الفولدر، والبرنامج هيحط فيه ملف PCS لكل شهر + ملف المراجعة المجمّع، وكل شهر هيتسجل في السجل لوحده.');
+  $('resNotes').innerHTML=notes.join('<br>');
+  $('conCount').textContent=r.contracts.length+' — '+last.label;
+  $('conBody').innerHTML=r.contracts.map(c=>`<tr><td translate="no">${esc(c.contractor)}</td><td class="n">${esc(c.contractNo)}</td><td class="small" translate="no">${esc(c.trade)}</td><td class="n">${c.ipc}</td><td class="n">${c.lines}</td><td class="n">${fmt(c.net)}</td><td class="n">${fmt(c.retention)}</td></tr>`).join('');
+  show('result'); $('result').scrollIntoView({behavior:'smooth'});
+  $('go').disabled=false; busy(false);
+}
 async function saveFile(){
   try{ const j=await api('/api/ipc/save');
+    if(j.folder){ $('saved').innerHTML='<i class="ic ok"></i>اتحفظ '+fmt(j.files)+' ملف PCS + ملف المراجعة المجمّع في: '+esc(j.folder)+' · <button class="link" onclick="openF('+JSON.stringify(j.path).replace(/"/g,'&quot;')+')">افتح الفولدر</button><br><span class="muted small">وكل شهر اتسجل في السجل لوحده.</span>'+(j.dbNote?'<br><span style="color:var(--bad)">'+esc(j.dbNote)+'</span>':''); return; }
     if(j.path){ $('saved').innerHTML='<i class="ic ok"></i>اتحفظ: '+esc(j.path)+' · <button class="link" onclick="openF('+JSON.stringify(j.path).replace(/"/g,'&quot;')+')">افتح الفولدر</button><br><span class="muted small">وملف المراجعة جنبه، واتسجل في السجل.</span>'+(j.dbNote?'<br><span style="color:var(--bad)">'+esc(j.dbNote)+'</span>':''); } }
   catch(e){ $('saved').textContent=e.message; }
 }

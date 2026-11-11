@@ -22,6 +22,8 @@ go build -trimpath -ldflags "-s -w -H windowsgui" -o Actualat.exe .
 | `server.go` | السيرفر المحلي والصفحات |
 | `auth.go` | الحسابات وتسجيل الدخول (الـ backend) |
 | `store.go` / `ipc.go` / `codes.go` | تحويل المخازن والمستخلصات |
+| `autocode.go` + `assets/store_known.json` | تكويد أصناف المخازن تلقائي لما الشيت مافيهوش أكواد |
+| `ipc_monthly.go` | المستخلصات شهر بشهر (ملف لكل شهر + مراجعة مجمّعة) |
 | `db.go` / `analytics.go` | السجل والـ Dashboard |
 | `update.go` / `updkey.go` | التحديثات من GitHub |
 | `web_*.html`, `ui.html`, `assets/web/` | الواجهة (عربي/English) |
