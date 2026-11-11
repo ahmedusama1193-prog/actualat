@@ -1,6 +1,6 @@
 {
- "version": "2.3",
- "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/8612291e4c82fbd6875944577754eda06473ee0c/Actualat.exe",
- "sha256": "017fe25c04e007918aaf3abde151ec902fb8377323367c9938d1f90eb3b8614c",
- "notes": "المستودعات: تكويد تلقائي للشيتات اللي مافيهاش أكواد · المستخلصات: شهر بشهر (ملف لكل شهر تراكمي)"
+ "version": "2.3.1",
+ "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/39b657bdefc64807d59fc1181bd171a5e9c17361/Actualat.exe",
+ "sha256": "66e10a12c39debd322bdf41b3267d62b66548b92c6af0fdb1d67cd22ae36ddeb",
+ "notes": "المستودعات: لو مفيش كود متعلّم، البرنامج بيختار أقرب كود من قايمة PCS"
 }
