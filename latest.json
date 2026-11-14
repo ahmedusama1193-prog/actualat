@@ -1,6 +1,6 @@
 {
- "version": "2.7",
- "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/e5a2f5498abe711862eb0a00984d4e89878903f9/Actualat.exe",
- "sha256": "27cb14deaa63087841a614c509ce6421ce54b33bc1cfba5c8059adbde87f8f66",
- "notes": "المالية: شيت GL ← قالب PCS متكود"
+ "version": "2.7.1",
+ "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/0a3e9d518ffbcfd490baa3a70a71c572e76757d0/Actualat.exe",
+ "sha256": "4a59c075246743f4092eabe240bdd61c9c9a1c30fe8060112416ba0eade0884a",
+ "notes": "أكواد حسابات المالية متظبطة مع PCS"
 }
