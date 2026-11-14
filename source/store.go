@@ -70,6 +70,7 @@ type storeMemory struct {
 	Learned  map[string]learnedEntry `json:"learned"`  // من الشيتات: وصف -> أكواد
 	Sections map[string]string       `json:"sections"` // القسم -> Task Code
 	Imported bool                    `json:"importedV3"`
+	CodesRev int                     `json:"codesRev"`
 }
 
 type learnedEntry struct {
@@ -107,6 +108,11 @@ func loadStoreMem() {
 	}
 	if !smem.Imported {
 		importV3Memory()
+	}
+	if migrateStoreMemLocked() {
+		os.MkdirAll(appDir(), 0o755)
+		b, _ := json.Marshal(smem)
+		os.WriteFile(smemPath(), b, 0o644)
 	}
 }
 

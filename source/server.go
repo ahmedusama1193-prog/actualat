@@ -310,6 +310,7 @@ func startServer() (string, error) {
 }
 
 func startServerOn(addr string) (string, error) {
+	migrateCodeFiles()
 	loadMem()
 	mux := http.NewServeMux()
 	page := func(b []byte) http.HandlerFunc {

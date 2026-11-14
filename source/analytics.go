@@ -150,6 +150,7 @@ func anaLines(id uint64) (*Run, []anaLine, error) {
 	if err != nil {
 		return run, nil, err
 	}
+	migrateAnaLines(run, ls)
 	anaMu.Lock()
 	anaCache[id] = ls
 	anaMu.Unlock()
