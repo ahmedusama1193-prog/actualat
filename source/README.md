@@ -23,6 +23,8 @@ go build -trimpath -ldflags "-s -w -H windowsgui" -o Actualat.exe .
 | `auth.go` | الحسابات وتسجيل الدخول (الـ backend) |
 | `store.go` / `ipc.go` / `codes.go` | تحويل المخازن والمستخلصات |
 | `autocode.go` + `assets/store_known.json` | تكويد أصناف المخازن تلقائي لما الشيت مافيهوش أكواد |
+| `finance.go` + `finance_codes.go` + `web_finance.html` | المالية: شيت GL ← قالب PCS (فلتر الشركة والمشروع والفترة) + Task/Cost لكل حساب |
+| `codes_migrate.go` | نقل الأكواد لقوائم PCS الجديدة (2.6) |
 | `ipc_monthly.go` | المستخلصات شهر بشهر (ملف لكل شهر + مراجعة مجمّعة) |
 | `db.go` / `analytics.go` | السجل والـ Dashboard |
 | `update.go` / `updkey.go` | التحديثات من GitHub |

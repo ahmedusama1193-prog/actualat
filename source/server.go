@@ -39,6 +39,9 @@ var analyticsHTML []byte
 //go:embed web_settings.html
 var settingsHTML []byte
 
+//go:embed web_finance.html
+var financeHTML []byte
+
 //go:embed web_welcome.html
 var welcomeHTML []byte
 
@@ -323,6 +326,7 @@ func startServerOn(addr string) (string, error) {
 	mux.HandleFunc("/", page(uiHTML))
 	mux.HandleFunc("/store.html", page(storeHTML))
 	mux.HandleFunc("/ipc.html", page(ipcHTML))
+	mux.HandleFunc("/finance.html", page(financeHTML))
 	mux.HandleFunc("/history.html", page(historyHTML))
 	mux.HandleFunc("/dashboard.html", page(dashboardHTML))
 	mux.HandleFunc("/analytics.html", page(analyticsHTML))
@@ -331,6 +335,7 @@ func startServerOn(addr string) (string, error) {
 	registerAuth(mux)
 	mux.HandleFunc("/welcome.html", page(welcomeHTML))
 	registerStore(mux)
+	registerFinance(mux)
 	registerHistory(mux)
 	sub, _ := fs.Sub(webFS, "assets/web")
 	files := http.StripPrefix("/assets/", http.FileServer(http.FS(sub)))

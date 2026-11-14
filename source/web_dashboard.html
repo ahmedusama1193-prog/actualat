@@ -41,6 +41,7 @@
     <div class="hdr-acts">
       <button class="btn" onclick="go('store')">تحويل صرف مخازن</button>
       <button class="btn sec" onclick="go('ipc')">تحويل مستخلصات</button>
+      <button class="btn sec" onclick="go('fin')">تحويل المالية (GL)</button>
     </div>
   </div>
 
@@ -111,8 +112,8 @@ async function load(){
       <td>${cell(c.store,'store')}</td><td>${cell(c.cur,'ipc')}</td><td>${cell(c.cum,'ipc')}</td><td>${st}</td></tr>`;
   }).join('');
   $('rec').innerHTML=runs.slice(0,5).map(r=>{
-    let p=r.kind==='store'? r.label.replace('صرف مخازن ','') : r.label.replace('مستخلصات — ','');
-    return `<tr><td style="width:150px"><span class="badge ${r.kind}">${r.kind==='store'?'المستودعات':'المستخلصات'}</span></td>
+    let p=r.kind==='store'? r.label.replace('صرف مخازن ','') : r.label.replace('مستخلصات — ','').replace('مالية — ','');
+    return `<tr><td style="width:150px"><span class="badge ${r.kind}">${r.kind==='store'?'المستودعات':r.kind==='fin'?'المالية':'المستخلصات'}</span></td>
       <td>${esc(T(p))}</td><td class="muted small" style="white-space:nowrap">${esc(r.created)}</td><td class="amt"><span class="amt">${fmt(r.amount)}</span></td></tr>`;
   }).join('');
 }

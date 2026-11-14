@@ -54,12 +54,13 @@
 </head>
 <body>
 <header class="top">
-  <div class="logo" translate="no" title="المستودعات والمستخلصات ← قوالب PCS"><img src="/assets/mark-logo.png" alt=""><div class="wm"><b>اكشوالات</b><small>ACTUALAT</small></div></div>
+  <div class="logo" translate="no" title="المستودعات والمستخلصات والمالية ← قوالب PCS"><img src="/assets/mark-logo.png" alt=""><div class="wm"><b>اكشوالات</b><small>ACTUALAT</small></div></div>
   <nav>
     <button class="nv" id="n-dash" onclick="nav('dash')">الإقفال الشهري</button>
     <button class="nv" id="n-ana" onclick="nav('ana')">Dashboard</button>
     <button class="nv" id="n-store" onclick="nav('store')">المستودعات</button>
     <button class="nv" id="n-ipc" onclick="nav('ipc')">المستخلصات</button>
+    <button class="nv" id="n-fin" onclick="nav('fin')">المالية</button>
     <button class="nv" id="n-hist" onclick="nav('hist')">السجل</button>
   </nav>
   <div class="grow"></div>
@@ -79,6 +80,7 @@
     <iframe id="f-ana" class="hidden"></iframe>
     <iframe id="f-store" class="hidden"></iframe>
     <iframe id="f-ipc" class="hidden"></iframe>
+    <iframe id="f-fin" class="hidden"></iframe>
     <iframe id="f-hist" class="hidden"></iframe>
     <iframe id="f-set" class="hidden"></iframe>
   </div>
@@ -96,7 +98,7 @@
 <div id="busy" class="busy hidden" style="background:rgba(10,11,14,.78);color:#fff">جاري تنزيل التحديث… البرنامج هيقفل ويفتح تاني لوحده</div>
 <script>
 const $=id=>document.getElementById(id);
-const PAGES={dash:'/dashboard.html',ana:'/analytics.html',store:'/store.html',ipc:'/ipc.html',hist:'/history.html',set:'/settings.html'};
+const PAGES={dash:'/dashboard.html',ana:'/analytics.html',store:'/store.html',ipc:'/ipc.html',fin:'/finance.html',hist:'/history.html',set:'/settings.html'};
 const RELOAD=['dash','ana','hist'];
 window.__theme='dark'; window.__cur='ج.م'; window.__user='';
 let S={}, upd=null, current='';
@@ -151,7 +153,7 @@ async function openData(){ try{ await fetch('/api/open-folder',{method:'POST',bo
 (async()=>{
   try{ S=await (await fetch('/api/settings',{method:'POST',body:'{}'})).json(); }catch(e){}
   window.__lang=null; applySettings(S);
-  const h=location.hash.slice(1); nav(['dash','ana','store','ipc','hist','set'].includes(h)?h:'dash');
+  const h=location.hash.slice(1); nav(['dash','ana','store','ipc','fin','hist','set'].includes(h)?h:'dash');
   checkUpd();
 })();
 </script>

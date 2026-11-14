@@ -26,6 +26,7 @@
       <button class="utab on" id="fAll" onclick="flt('all')">الكل</button>
       <button class="utab" id="fStore" onclick="flt('store')">المستودعات</button>
       <button class="utab" id="fIpc" onclick="flt('ipc')">المستخلصات</button>
+      <button class="utab" id="fFin" onclick="flt('fin')">المالية</button>
     </div>
     <input id="q" class="search" placeholder="بحث باسم الملف أو الفترة…" oninput="render()">
   </div>
@@ -33,7 +34,7 @@
   <div class="tbl">
     <table style="table-layout:fixed"><colgroup><col style="width:150px"><col style="width:120px"><col style="width:170px"><col><col style="width:110px"><col style="width:175px"><col style="width:120px"><col style="width:250px"></colgroup><thead><tr><th>تاريخ الحفظ</th><th>التصنيف</th><th>الفترة</th><th>اسم الملف</th><th>عدد البنود</th><th>القيمة المالية</th><th>الحالة</th><th></th></tr></thead>
     <tbody id="body"></tbody></table>
-    <div id="empty" class="empty hidden">لسه مفيش ملفات اتحفظت. كل ملف PCS تحفظه من المستودعات أو المستخلصات بيتسجل هنا بتاريخه وقيمته، وتقدر تفتح فولدره أو تشيله من السجل.</div>
+    <div id="empty" class="empty hidden">لسه مفيش ملفات اتحفظت. كل ملف PCS تحفظه من المستودعات أو المستخلصات أو المالية بيتسجل هنا بتاريخه وقيمته، وتقدر تفتح فولدره أو تشيله من السجل.</div>
   </div>
   <div class="foot"><span id="cnt"></span><span><button class="link" style="color:var(--muted)" onclick="openF('')"><i class="ic folder"></i>افتح فولدر البيانات</button></span></div>
   <div id="err" class="err"></div>
@@ -51,8 +52,8 @@ async function load(){
   try{ const j=await api('/api/history/list'); runs=j.runs||[]; $('pill').classList.remove('off'); $('pillT').textContent='قاعدة البيانات شغالة'; render(); }
   catch(e){ $('pill').classList.add('off'); $('pillT').textContent='قاعدة البيانات مش متاحة'; err(e.message); }
 }
-function flt(x){ f=x; ['All','Store','Ipc'].forEach(k=>$('f'+k).classList.toggle('on',k.toLowerCase()===x)); render(); }
-function period(r){ let p=r.kind==='store'? r.label.replace('صرف مخازن ','') : r.label.replace('مستخلصات — ','');
+function flt(x){ f=x; ['All','Store','Ipc','Fin'].forEach(k=>$('f'+k).classList.toggle('on',k.toLowerCase()===x)); render(); }
+function period(r){ let p=r.kind==='store'? r.label.replace('صرف مخازن ','') : r.label.replace('مستخلصات — ','').replace('مالية — ','');
   const m=p.split(' + '); if(m.length>2) p=`${m[0].split(' ')[0]} ← ${m[m.length-1]} (${m.length} شهور)`; return T(p); }
 function fname(r){ return (r.savedPath||r.outName||'').split(/[\\/]/).pop(); }
 function render(){
@@ -63,10 +64,10 @@ function render(){
   const c=cur();
   $('body').innerHTML=list.map(r=>`<tr>
     <td class="n" style="white-space:nowrap;text-align:start">${esc(r.created)}</td>
-    <td><span class="badge ${r.kind}">${r.kind==='store'?'المستودعات':'المستخلصات'}</span></td>
+    <td><span class="badge ${r.kind}">${r.kind==='store'?'المستودعات':r.kind==='fin'?'المالية':'المستخلصات'}</span></td>
     <td class="per" title="${esc(period(r))}">${esc(period(r))}</td>
     <td class="fn" translate="no" title="${esc(r.savedPath)}">${esc(fname(r))}</td>
-    <td style="white-space:nowrap">${Number(r.items||0).toLocaleString('en-US')} ${r.kind==='ipc'?'مستخلص':'بند'}</td>
+    <td style="white-space:nowrap">${Number(r.items||0).toLocaleString('en-US')} ${r.kind==='ipc'?'مستخلص':r.kind==='fin'?'سطر':'بند'}</td>
     <td><span class="amt">${fmt(r.amount)}</span>${c?`<span class="cur">${esc(c)}</span>`:''}</td>
     <td>${r.exists?'<span class="badge done" title="الملف موجود في مكانه">محفوظ</span>':'<span class="badge gone" title="الملف اتنقل أو اتمسح — تقدر تنزّله تاني من هنا">مش في مكانه</span>'}</td>
     <td><div class="acts">

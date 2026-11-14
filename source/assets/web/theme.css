@@ -79,6 +79,8 @@ html[data-theme=light] .busy{background:rgba(243,244,246,.75)!important}
 .badge.store{color:#7fe3d4;background:rgba(var(--sec-rgb),.14);border-color:rgba(var(--sec-rgb),.5)}
 html[data-theme=light] .badge.ipc{color:#a8481f;box-shadow:none}
 html[data-theme=light] .badge.store{color:#1f5c4a}
+.badge.fin{color:#c9b7f2;background:rgba(150,120,220,.14);border-color:rgba(150,120,220,.5)}
+html[data-theme=light] .badge.fin{color:#5b3f9e}
 .badge.done{color:var(--ok);background:var(--okbg)}
 .badge.gone{color:var(--warn);background:var(--y)}
 .amt{font-weight:700;direction:ltr;unicode-bidi:plaintext;white-space:nowrap}
