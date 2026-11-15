@@ -138,3 +138,33 @@ func migrateAnaLines(run *Run, ls []anaLine) {
 		ls[i].Cost = migCost(ls[i].Cost)
 	}
 }
+
+// أكواد جاية من شيت المدخلات: لو الكود مش في القوايم الجديدة
+// ← لو ليه رقم جديد (ترقيم قديم) بيتحوّل، غير كده بيتشال والبرنامج بيكوّد الصنف لوحده.
+// (كود موجود في القايمة الجديدة بيفضل زي ما هو.)
+func normalizeInputCodes(rows []*sRow, cl *CodeLists) (fixT, fixC, clrT, clrC int) {
+	if cl == nil || cl.byT == nil {
+		return
+	}
+	for _, x := range rows {
+		if x.Task != "" && cl.byT[x.Task] == nil {
+			if n := migTask(x.Task); n != x.Task && cl.byT[n] != nil {
+				x.Task = n
+				fixT++
+			} else {
+				x.Task = ""
+				clrT++
+			}
+		}
+		if x.Cost != "" && cl.byC[x.Cost] == nil {
+			if n := migCost(x.Cost); n != x.Cost && cl.byC[n] != nil {
+				x.Cost = n
+				fixC++
+			} else {
+				x.Cost = ""
+				clrC++
+			}
+		}
+	}
+	return
+}

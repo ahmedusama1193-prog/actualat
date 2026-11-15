@@ -165,7 +165,7 @@ async function prepare(){
       const parts=Object.keys(SRC).filter(k=>cnt[k]).map(k=>`${SRC[k]} <b>${fmt(cnt[k])}</b>`).join(' · ');
       $('codesNote').innerHTML=`<span class="ok"><i class="ic ok"></i>البرنامج كوّد <b>${fmt(groups.length)}</b> صنف لوحده</span> (مالهمش Task Code أو Cost Code في الشيت) — <span>جاهز، دوس «تحويل» على طول.</span>`+
         `<div class="muted" style="margin-top:4px">${parts}</div>`+
-        `<div class="muted">كل الأكواد اللي اتحطت هتلاقيها في ملف المراجعة (شيت «الأكواد»). قايمة الأكواد: ${prep.codesFrom==='file'?'من الملف نفسه':'آخر قايمة استخدمتها'} (${prep.codes.task.length} Task · ${prep.codes.cost.length} Cost)</div>`;
+        `<div class="muted">كل الأكواد اللي اتحطت هتلاقيها في ملف المراجعة (شيت «الأكواد»). قايمة الأكواد: ${prep.codesFrom==='file'?'من الملف نفسه':'آخر قايمة استخدمتها'} (${prep.codes.task.length} Task · ${prep.codes.cost.length} Cost)</div>`+(prep.codeFix&&(prep.codeFix.taskConverted+prep.codeFix.costConverted+prep.codeFix.taskCleared+prep.codeFix.costCleared)?`<div style="color:var(--warn)">أكواد في الشيت مش في قايمة PCS الجديدة: اتحوّل ${prep.codeFix.taskConverted+prep.codeFix.costConverted} كود لرقمه الجديد، و${prep.codeFix.taskCleared+prep.codeFix.costCleared} اتشال والبرنامج كوّده.</div>`:'');
       hide('codesBox'); setFilter('all'); show('s4');
     } else hide('s4');
     show('s5'); hide('result');

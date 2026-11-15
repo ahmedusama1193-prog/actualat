@@ -391,7 +391,7 @@ func (s *storeState) loadSheet(sheet string, hdrRow int) (bool, error) {
 		}
 	}
 	if len(tRows) > 1 && len(cRows) > 1 {
-		if t := codesFromRows(tRows); len(t) > 0 {
+		if t := codesFromRows(tRows); len(t) > 0 && !codesHave(t, "1-007-001") { // قوايم الترقيم القديم جوه الملف مابنستخدمهاش
 			if c := codesFromRows(cRows); len(c) > 0 {
 				s.cl = &CodeLists{Task: t, Cost: c}
 				s.cl.index()
@@ -727,6 +727,7 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 	// المجموعات اللي ناقصها أكواد — البرنامج بيكوّدها لوحده (autocode.go)
 	sst.groups = map[string]*sGroup{}
 	var groups []*sGroup
+	fixT, fixC, clrT, clrC := normalizeInputCodes(sst.parsed, sst.cl)
 	ac := sst.newAutoCoder()
 	for _, x := range sst.parsed {
 		nt, nc := x.Task == "", x.Cost == ""
@@ -754,7 +755,8 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 		srcCount[g.Task.Src]++
 	}
 	writeJSON(w, 200, map[string]interface{}{"rows": len(sst.parsed), "amount": r2(total), "months": months, "noDate": noDate,
-		"groups": groups, "codes": sst.cl, "codesFrom": sst.clSrc, "autoSrc": srcCount})
+		"groups": groups, "codes": sst.cl, "codesFrom": sst.clSrc, "autoSrc": srcCount,
+		"codeFix": map[string]int{"taskConverted": fixT, "costConverted": fixC, "taskCleared": clrT, "costCleared": clrC}})
 }
 
 // ------------------------------------------------------------------ convert
