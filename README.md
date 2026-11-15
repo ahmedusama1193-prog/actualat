@@ -8,6 +8,9 @@
 - **الإقفال الشهري** و **Dashboard** و **السجل**
 
 ## التثبيت
+**الأسهل:** نزّل [`Actualat_Setup.exe`](Actualat_Setup.exe) وشغّله ← «التالي» ← «إنهاء». (ويندوز ممكن يقول «Windows protected your PC» لأن الملف مش موقّع: دوس More info ← Run anyway.)
+
+أو:
 نزّل [`Actualat.exe`](Actualat.exe) وشغّله. البرنامج هيعمل الآتي:
 1. يثبّت نفسه.
 2. يعمل اختصار «اكشوالات» على الديسكتوب وفي قايمة Start.
@@ -21,4 +24,5 @@
 | [`source/`](source) | الكود كامل (Go + WebView2)، وطريقة البناء في README بتاعه |
 | [`design/`](design) | الهوية: اللوجو بكل أشكاله، الألوان، الخطوط، صور البرنامج، ولوحات التصميم |
 | [`CHANGELOG.md`](CHANGELOG.md) | سجل الإصدارات |
+| `installer/` · `Actualat_Setup.exe` | سكريبت ملف التثبيت (NSIS) + ملف التثبيت الجاهز |
 | `Actualat.exe` · `latest.json` | آخر إصدار + ملف التحديث |
