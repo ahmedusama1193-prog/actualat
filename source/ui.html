@@ -45,6 +45,7 @@
   .status{display:flex;align-items:center;gap:18px;border-top:1px solid var(--line2);padding:9px 22px;color:var(--muted);font-size:12.5px;background:var(--bg)}
   .status .path{display:flex;align-items:center;gap:8px;cursor:pointer;min-width:0;background:none;border:none;color:inherit;font:inherit;padding:0}
   .status .path span{direction:ltr;unicode-bidi:plaintext;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:440px}
+  .status .by2{color:var(--ink);font-weight:600;white-space:nowrap}
   .status .path:hover{color:var(--ink)}
   .status svg{width:18px;height:18px;flex:none}
   .conn{display:flex;align-items:center;gap:7px;color:var(--ok);font-weight:600}
@@ -55,7 +56,7 @@
 </head>
 <body>
 <header class="top">
-  <div class="logo" translate="no" title="المستودعات والمستخلصات والمالية ← قوالب PCS"><img src="/assets/mark-logo.png" alt=""><div class="wm"><b>اكشوالات</b><small>ACTUALAT</small><i class="by">أنشئ بواسطة أحمد أسامة</i></div></div>
+  <div class="logo" translate="no" title="المستودعات والمستخلصات والمالية ← قوالب PCS"><img src="/assets/mark-logo.png" alt=""><div class="wm"><b>اكشوالات</b><small>ACTUALAT</small></div></div>
   <nav>
     <button class="nv" id="n-dash" onclick="nav('dash')">الإقفال الشهري</button>
     <button class="nv" id="n-ana" onclick="nav('ana')">Dashboard</button>
@@ -90,6 +91,8 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><path d="M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z"/></svg>
       <span id="dpath"></span>
     </button>
+    <span class="sep"></span>
+    <span class="by2" translate="no">أنشئ بواسطة : أحمد أسامة</span>
     <div class="grow"></div>
     <div class="conn off" id="conn"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="m7.5 12.3 3 3 6-6.3" fill="none" stroke="#0f1114" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg><span id="connT">بيتأكد من الاتصال…</span></div>
     <span class="sep"></span>
