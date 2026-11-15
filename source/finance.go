@@ -497,7 +497,7 @@ func hFinPrepare(w http.ResponseWriter, r *http.Request) {
 	}
 	sort.Slice(list, func(i, j int) bool { return list[i].Acc < list[j].Acc })
 	writeJSON(w, 200, map[string]interface{}{"accounts": list, "lines": len(sel), "debit": r2(td), "credit": r2(tc), "net": r2(td - tc),
-		"codes": fst.cl, "previous": samePeriod("fin", finPeriod(o))})
+		"codes": fst.cl, "previous": samePeriod("fin", finPeriod(o), reqUser(r))})
 }
 
 func finPeriod(o finOpts) string {
@@ -709,7 +709,7 @@ func hFinConvert(w http.ResponseWriter, r *http.Request) {
 		"outLines": len(out), "outDebit": r2(outD), "outCredit": r2(outC), "exDebit": r2(exD), "exCredit": r2(exC),
 		"noTask": noT, "noCost": noC, "groups": groups, "period": finPeriodLabel(o),
 		"match": math.Abs((outD+exD)-srcD) < 0.01 && math.Abs((outC+exC)-srcC) < 0.01,
-		"previous": samePeriod("fin", finPeriod(o))}
+		"previous": samePeriod("fin", finPeriod(o), reqUser(r))}
 	writeJSON(w, 200, fst.sum)
 }
 
@@ -797,6 +797,7 @@ func hFinSave(w http.ResponseWriter, r *http.Request) {
 	run := &Run{Kind: "fin", Period: finPeriod(o), Label: "مالية — " + strings.TrimSpace(o.Project) + " · " + o.Company + " · " + finPeriodLabel(o),
 		Source: fst.name, Items: len(fst.sel), Amount: fst.sum["outDebit"].(float64) - fst.sum["outCredit"].(float64),
 		Extra: fmt.Sprintf("%d سطر", len(fst.sel)), OutName: n1, RevName: n2}
+	run.User = reqUser(r)
 	saveAndRecord(w, run, fst.out, fst.review)
 }
 

@@ -1144,7 +1144,7 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		"items": len(outs), "qty": r2(oQty), "amount": r2(oAmt), "byMonth": bm,
 		"noRate": noRate, "noTask": noTask, "noCost": noCost, "excluded": exQty + exCost, "excludedNoDate": exDate,
 		"autoCoded": len(codeOrder),
-		"previous":  samePeriod("store", tag),
+		"previous":  samePeriod("store", tag, reqUser(r)),
 	})
 }
 
@@ -1156,6 +1156,7 @@ func hStoreSave(w http.ResponseWriter, r *http.Request) {
 	run := &Run{Kind: "store", Period: sst.outTag, Label: "صرف مخازن " + sst.outLabel, Source: sst.name,
 		Items: sst.outItems, Amount: sst.outAmount,
 		OutName: "PCS_Store_Issues_" + sst.outTag + ".xlsx", RevName: "Review_Store_Issues_" + sst.outTag + ".xlsx"}
+	run.User = reqUser(r)
 	saveAndRecord(w, run, sst.out, sst.rev)
 }
 

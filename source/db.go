@@ -42,6 +42,7 @@ type Run struct {
 	RevName   string  `json:"revName"`
 	SavedPath string  `json:"savedPath"`
 	Created   string  `json:"created"`
+	User      string  `json:"user,omitempty"` // صاحب السجل (حساب البرنامج) — من 2.8
 	Exists    bool    `json:"exists"` // الملف لسه في مكانه (بيتحسب وقت العرض)
 	onSaved   func()  // بيتنفذ بعد ما الملف يتحفظ
 }
@@ -111,6 +112,29 @@ func listRuns() ([]Run, error) {
 	return out, err
 }
 
+// سجلات المستخدم ده بس (+ السجلات القديمة اللي قبل 2.8 ومالهاش صاحب)
+func listRunsFor(user string) ([]Run, error) {
+	all, err := listRuns()
+	var out []Run
+	for _, r := range all {
+		if r.User == "" || r.User == user {
+			out = append(out, r)
+		}
+	}
+	return out, err
+}
+
+func reqUser(r *http.Request) string { return userKey(sessionUser(r)) }
+
+// getRunFor: نفس getRun بس بيرفض سجل حد تاني
+func getRunFor(id uint64, user string) (*Run, []byte, []byte, error) {
+	run, o, rv, err := getRun(id)
+	if err == nil && run.User != "" && run.User != user {
+		return nil, nil, nil, fmt.Errorf("السجل ده مش بتاعك")
+	}
+	return run, o, rv, err
+}
+
 func getRun(id uint64) (*Run, []byte, []byte, error) {
 	if err := openDB(); err != nil {
 		return nil, nil, nil, err
@@ -131,6 +155,13 @@ func getRun(id uint64) (*Run, []byte, []byte, error) {
 	return &r, o, rv, err
 }
 
+func deleteRunFor(id uint64, user string) error {
+	if _, _, _, err := getRunFor(id, user); err != nil {
+		return err
+	}
+	return deleteRun(id)
+}
+
 func deleteRun(id uint64) error {
 	if err := openDB(); err != nil {
 		return err
@@ -145,8 +176,8 @@ func deleteRun(id uint64) error {
 }
 
 // السجلات السابقة لنفس الفترة (عشان التنبيه)
-func samePeriod(kind, period string) []Run {
-	runs, _ := listRuns()
+func samePeriod(kind, period, user string) []Run {
+	runs, _ := listRunsFor(user)
 	var out []Run
 	for _, r := range runs {
 		if r.Kind == kind && r.Period == period {
@@ -209,7 +240,7 @@ func saveAndRecord(w http.ResponseWriter, run *Run, out, rev []byte) {
 
 // ------------------------------------------------------------------ API: السجل
 func hHistList(w http.ResponseWriter, r *http.Request) {
-	runs, err := listRuns()
+	runs, err := listRunsFor(reqUser(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -232,7 +263,7 @@ func hHistSave(w http.ResponseWriter, r *http.Request) {
 		Which string `json:"which"`
 	}
 	json.NewDecoder(r.Body).Decode(&b)
-	run, o, rv, err := getRun(b.ID)
+	run, o, rv, err := getRunFor(b.ID, reqUser(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -267,7 +298,7 @@ func hHistDelete(w http.ResponseWriter, r *http.Request) {
 		ID uint64 `json:"id"`
 	}
 	json.NewDecoder(r.Body).Decode(&b)
-	if err := deleteRun(b.ID); err != nil {
+	if err := deleteRunFor(b.ID, reqUser(r)); err != nil {
 		fail(w, err)
 		return
 	}

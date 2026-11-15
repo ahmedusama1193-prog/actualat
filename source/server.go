@@ -242,7 +242,7 @@ func hConvert(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, 200, map[string]interface{}{"result": res, "lines": len(res.Rows), "noTask": noT, "noCost": noC,
-		"previous": samePeriod("ipc", ipcPeriod(o))})
+		"previous": samePeriod("ipc", ipcPeriod(o), reqUser(r))})
 }
 
 func outName() (string, string) {
@@ -281,6 +281,7 @@ func hSave(w http.ResponseWriter, r *http.Request) {
 	if st.res != nil {
 		run.onSaved = st.res.rememberContractNos
 	}
+	run.User = reqUser(r)
 	saveAndRecord(w, run, st.out, st.review)
 }
 

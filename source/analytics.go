@@ -257,7 +257,7 @@ func hAnalytics(w http.ResponseWriter, r *http.Request) {
 	if n, err := strconv.Atoi(q.Get("top")); err == nil && n > 0 && n <= 50 {
 		topN = n
 	}
-	runs, err := listRuns()
+	runs, err := listRunsFor(reqUser(r))
 	if err != nil {
 		fail(w, err)
 		return
@@ -316,7 +316,13 @@ func hAnalytics(w http.ResponseWriter, r *http.Request) {
 		label = "كل الشهور المحفوظة"
 	} else {
 		id, _ := strconv.ParseUint(sel, 10, 64)
-		if id == 0 {
+		mine := false
+		for _, o := range opts {
+			if o.ID == id {
+				mine = true
+			}
+		}
+		if id == 0 || !mine { // سجل مش موجود أو بتاع حد تاني
 			id = opts[0].ID
 		}
 		run, ls, err := anaLines(id)
