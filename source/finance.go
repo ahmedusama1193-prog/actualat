@@ -298,7 +298,7 @@ func (cl *CodeLists) nearestCode(list []*Code, text string) (string, float64) {
 
 // كود السطر: كود الحساب، إلا لو البيان فيه كلمة بتغيّره (والحساب مش متغير من المستخدم)
 func finLineCodes(l *finLine, accT, accC string, user bool) (string, string, bool) {
-	if user {
+	if user || !finKwEnabled {
 		return accT, accC, false
 	}
 	d := normAr(l.Desc)
