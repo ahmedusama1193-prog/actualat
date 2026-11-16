@@ -4,7 +4,7 @@ ManifestDPIAware true
 
 !define APPNAME "Actualat"
 !define DISPLAY "اكشوالات · Actualat"
-!define VERSION "2.17"
+!define VERSION "2.18"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\Actualat"
 
 Name "${DISPLAY}"
@@ -13,7 +13,7 @@ InstallDir "$LOCALAPPDATA\Programs\${APPNAME}"
 RequestExecutionLevel user
 SetCompressor /SOLID lzma
 BrandingText "Actualat ${VERSION}"
-VIProductVersion "2.17.0.0"
+VIProductVersion "2.18.0.0"
 VIAddVersionKey /LANG=1025 "ProductName" "Actualat"
 VIAddVersionKey /LANG=1025 "FileDescription" "Actualat Setup"
 VIAddVersionKey /LANG=1025 "FileVersion" "${VERSION}"

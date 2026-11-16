@@ -10,6 +10,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"regexp"
 	"sort"
 	"strings"
 
@@ -377,6 +378,7 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 		n       int
 	}
 	byCode, byName := map[string]*acc{}, map[string]*acc{}
+	var plist []*pfName
 	get := func(r []string, j int) string {
 		if j < 0 || j >= len(r) {
 			return ""
@@ -416,7 +418,11 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 			put(byCode, "c:"+normAr(code), q, a, p)
 		}
 		if name != "" {
-			put(byName, "n:"+normAr(name), q, a, p)
+			k := "n:" + normAr(name)
+			if byName[k] == nil {
+				plist = append(plist, &pfName{name: name, key: k, tk: pfTokens(name)})
+			}
+			put(byName, k, q, a, p)
 		}
 	}
 	val := func(x *acc) float64 {
@@ -431,27 +437,30 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 		}
 		return 0
 	}
-	// طابق على الأصناف اللي لسه من غير سعر
+	// طابق على الأصناف اللي لسه من غير سعر — باسم الصنف بس (مش بالكود): نفس الاسم، وإلا أقرب اسم
 	matched := map[string]float64{}
+	names := map[string]string{}
 	seen := map[string]bool{}
 	for _, x := range sst.parsed {
 		if !x.NoPrice || x.PriceBy == "month" || seen[x.key] {
 			continue
 		}
 		seen[x.key] = true
-		p := 0.0
-		if x.Code != "" {
-			p = val(byCode["c:"+normAr(x.Code)])
-		}
+		p, nm := val(byName[nameKey(x)]), ""
 		if p == 0 {
-			p = val(byName[nameKey(x)])
+			if c := pfBest(x.label()+" "+x.Desc, plist); c != nil {
+				p, nm = val(byName[c.key]), c.name
+			}
 		}
 		if p > 0 {
 			matched[x.key] = math.Round(p*1e4) / 1e4
+			if nm != "" {
+				names[x.key] = nm
+			}
 		}
 	}
 	writeJSON(w, 200, map[string]interface{}{"file": hdr.Filename, "sheet": best.sheet, "lines": lines,
-		"matched": matched, "count": len(matched), "total": len(seen)})
+		"matched": matched, "names": names, "count": len(matched), "total": len(seen)})
 }
 
 // pfHeader: عناوين ملف الأسعار بمرونة (أي عنوان «فيه» الكلمة): صف العناوين و [كود، اسم، سعر، قيمة، كمية]
@@ -524,4 +533,108 @@ func pfHeader(rows [][]string) (int, [5]int) {
 		}
 	}
 	return bestH, bestC
+}
+
+type pfName struct {
+	name, key string
+	tk        map[string]bool
+}
+
+var reNumUnit = regexp.MustCompile(`(\d+(?:\.\d+)?)`)
+
+// pfTokens: كلمات الاسم (عربي/إنجليزي) + الأرقام لوحدها + توحيد الوحدات (مم=mm، سم=cm)
+func pfTokens(s string) map[string]bool {
+	s = normAr(s)
+	s = strings.NewReplacer("×", " ", "*", " x ", "\\", " ", "\"", " ", "'", " ").Replace(s)
+	out := map[string]bool{}
+	// كلمة فيها شرطة (ppr-uv) بتتحسب كمان ملزوقة (ppruv)
+	for _, w := range strings.Fields(s) {
+		if strings.Contains(w, "-") || strings.Contains(w, "/") {
+			j := strings.NewReplacer("-", "", "/", "").Replace(w)
+			if j != "" && !isNum(j) {
+				out[j] = true
+			}
+		}
+	}
+	s = reNumUnit.ReplaceAllString(s, " $1 ")
+	for _, w := range strings.FieldsFunc(s, func(r rune) bool {
+		return !(r >= '0' && r <= '9' || r == '.' || r >= 'a' && r <= 'z' || r >= 0x0621 && r <= 0x064A)
+	}) {
+		w = strings.Trim(w, ".")
+		switch w {
+		case "مم", "ملي", "ملم":
+			w = "mm"
+		case "سم":
+			w = "cm"
+		case "م", "متر":
+			w = "m"
+		case "x", "", "و", "of", "with", "and", "the", "for":
+			continue
+		}
+		if strings.HasPrefix(w, "ال") && len([]rune(w)) > 4 {
+			w = string([]rune(w)[2:])
+		}
+		out[w] = true
+	}
+	return out
+}
+
+func isNum(w string) bool { return w != "" && strings.Trim(w, "0123456789.") == "" }
+
+// pfBest: أقرب اسم في ملف الأسعار — لازم كلمتين مشتركين على الأقل، والأرقام (المقاسات) تبقى زي بعض
+func pfBest(name string, list []*pfName) *pfName {
+	a := pfTokens(name)
+	if len(a) == 0 {
+		return nil
+	}
+	var best *pfName
+	bs := 0.0
+	for _, c := range list {
+		n, numA, numHit := 0, 0, 0
+		for w := range a {
+			if isNum(w) {
+				numA++
+				if c.tk[w] {
+					numHit++
+				}
+			}
+			if c.tk[w] {
+				n++
+			}
+		}
+		if n < 2 || numHit < numA {
+			continue
+		}
+		extra := false // رقم (مقاس) في الاسم ده مش في اسم الصنف ← صنف تاني
+		for w := range c.tk {
+			if isNum(w) && !a[w] {
+				extra = true
+				break
+			}
+		}
+		if extra && numA > 0 {
+			continue
+		}
+		// لازم معظم كلمات اسم الصنف (غير الأرقام) تكون في الاسم ده — عشان مايطابقش «طبة» على «كوع» بس عشان المقاس واحد
+		wa, wh := 0, 0
+		for w := range a {
+			if !isNum(w) && w != "mm" && w != "cm" && w != "m" {
+				wa++
+				if c.tk[w] {
+					wh++
+				}
+			}
+		}
+		if wa == 0 || float64(wh)/float64(wa) < 0.6 {
+			continue
+		}
+		sc := float64(n) / float64(len(a)+len(c.tk)-n)
+		if sc > bs {
+			best, bs = c, sc
+		}
+	}
+	if bs < 0.34 {
+		return nil
+	}
+	return best
 }
