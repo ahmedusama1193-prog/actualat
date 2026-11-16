@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=32">
-<link rel="stylesheet" href="/assets/theme.css?v=32">
-<script src="/assets/i18n.js?v=32"></script>
+<link rel="stylesheet" href="/assets/base.css?v=33">
+<link rel="stylesheet" href="/assets/theme.css?v=33">
+<script src="/assets/i18n.js?v=33"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 <style>
   .cpick{display:inline-flex;align-items:center;position:relative}
@@ -42,6 +42,10 @@
   .mft .grow{flex:1}
   .mbody table th{position:sticky;top:-16px;background:var(--card)!important;z-index:2}
   input.pr{width:120px;direction:ltr;text-align:left;padding:6px 9px}
+  .pfile{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;padding:12px 14px;border:1px solid var(--line2);border-radius:10px;margin-bottom:14px}
+  .pfile .rad{display:inline-flex;align-items:center;gap:7px;cursor:pointer;font-size:13.5px}
+  .pfile .rad input{width:17px;height:17px;margin:0;accent-color:var(--pri)}
+  .ftag{display:inline-block;font-size:11px;color:var(--pri);margin-top:2px}
   .pnote{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
   .pnote .btn{height:auto!important;min-height:0!important;padding:6px 14px!important;line-height:1.4!important;font-size:13px!important}
 </style>
@@ -404,16 +408,36 @@ function showFilled(){
 }
 function showNoPrice(forConvert){
   const np=prep.noPrice||[];
-  const body=`<div class="muted small" style="margin-bottom:10px">${T('الأصناف دي مالهاش سعر في الشيت ولا في أي شهر تاني. اكتب سعر الوحدة لكل صنف. اللي هتسيبه فاضي هيتشال من ملف PCS (التكلفة صفر). السعر بيتحفظ ويظهرلك المرة الجاية كاقتراح.')}</div>`+
+  const body=`<div class="pfile"><b>${T('أسعار من ملف إكسيل؟')}</b>
+      <label class="rad"><input type="radio" name="pfUse" value="no" checked onchange="pfToggle(false)"> ${T('لا')}</label>
+      <label class="rad"><input type="radio" name="pfUse" value="yes" onchange="pfToggle(true)"> ${T('أيوه، استخدم ملف')}</label>
+      <span id="pfBox" class="hidden" style="display:inline-flex;gap:10px;align-items:center"><button class="btn sec" onclick="$('pfIn').click()">${T('اختار ملف الأسعار…')}</button><span id="pfMsg" class="small"></span></span>
+      <input id="pfIn" type="file" accept=".xlsx,.xlsm" class="hidden" onchange="pfLoad(this)">
+    </div>`+`<div class="muted small" style="margin-bottom:10px">${T('الأصناف دي مالهاش سعر في الشيت ولا في أي شهر تاني. اكتب سعر الوحدة لكل صنف. اللي هتسيبه فاضي هيتشال من ملف PCS (التكلفة صفر). السعر بيتحفظ ويظهرلك المرة الجاية كاقتراح.')}</div>`+
     `<table><thead><tr><th>${T('كود الصنف')}</th><th>${T('الصنف')}</th><th>${T('الوحدة')}</th><th>${T('عدد البنود')}</th><th>${T('الكمية')}</th><th>${T('الشهور')}</th><th>${T('سعر الوحدة')}</th><th>${T('القيمة')}</th></tr></thead><tbody>`+
     np.map((it,i)=>{ const v=prices[it.key]>0?prices[it.key]:(it.saved||'');
       return `<tr><td class="n" translate="no">${esc(it.code)}</td><td translate="no">${esc(it.name)}</td><td translate="no">${esc(it.unit)}</td><td class="n">${fmt(it.rows)}</td><td class="n">${fmt(it.qty)}</td><td class="small">${esc((it.months||[]).join('، '))}</td>
-        <td><input class="pr" type="number" min="0" step="any" data-i="${i}" value="${v}" oninput="npAmt(this)">${it.saved&&!(prices[it.key]>0)?`<div class="muted small">${T('آخر سعر دخلته')}</div>`:''}</td><td class="n" id="npa${i}">${v?fmt(v*it.qty):''}</td></tr>`; }).join('')+'</tbody></table>';
+        <td><input class="pr" type="number" min="0" step="any" data-i="${i}" value="${v}" oninput="npAmt(this);const t=this.parentNode.querySelector('.ftag');if(t)t.remove()">${it.saved&&!(prices[it.key]>0)?`<div class="muted small">${T('آخر سعر دخلته')}</div>`:''}</td><td class="n" id="npa${i}">${v?fmt(v*it.qty):''}</td></tr>`; }).join('')+'</tbody></table>';
   const foot=`<span class="muted small grow" id="npLeft"></span><button class="btn sec" onclick="closeModal()">${T('إلغاء')}</button>`+
     (forConvert?`<button class="btn sec" onclick="savePrices();closeModal();convert(true)">${T('حوّل من غير الناقص')}</button><button class="btn" onclick="savePrices();closeModal();convert(true)">${T('حفظ وتحويل')}</button>`
                :`<button class="btn" onclick="savePrices();closeModal()">${T('حفظ الأسعار')}</button>`);
   openModal(T('أصناف من غير سعر')+` (${fmt(np.length)})`,body,foot); npCount();
   const f=$('mB').querySelector('input.pr'); if(f) f.focus();
+}
+// ملف الأسعار: بيتستخدم بس لو اخترت «أيوه» — وبيملا الخانات، وانت تراجع وتعدّل قبل الحفظ
+function pfToggle(on){ $('pfBox').classList.toggle('hidden',!on); if(!on){ $('pfMsg').textContent=''; } }
+async function pfLoad(inp){
+  const f=inp.files[0]; inp.value=''; if(!f) return;
+  $('pfMsg').textContent=T('بيقرا الملف…'); $('pfMsg').style.color='';
+  try{
+    const fd=new FormData(); fd.append('file',f);
+    const j=await api('/api/store/price-file',fd,true);
+    let n=0;
+    $('mB').querySelectorAll('input.pr').forEach(i=>{ const it=prep.noPrice[+i.dataset.i], p=j.matched[it.key];
+      if(p>0){ i.value=p; npAmt(i); n++; const td=i.parentNode; td.querySelectorAll('.ftag,.muted').forEach(e=>e.remove()); td.insertAdjacentHTML('beforeend',`<div class="ftag">${T('من الملف')}</div>`); } });
+    $('pfMsg').innerHTML=`<i class="ic ok"></i><span translate="no">${esc(j.file)}</span> · ${T('الشيت')} <span translate="no">${esc(j.sheet)}</span> — ${T('لقى سعر')} <b>${n}</b> ${T('من')} ${prep.noPrice.length} ${T('صنف')}`;
+    $('pfMsg').style.color=n?'var(--ok)':'var(--warn)';
+  }catch(e){ $('pfMsg').textContent=e.message; $('pfMsg').style.color='var(--bad)'; }
 }
 function npAmt(inp){ const it=prep.noPrice[+inp.dataset.i], v=parseFloat(inp.value); $('npa'+inp.dataset.i).textContent=v>0?fmt(v*it.qty):''; npCount(); }
 function npCount(){ const ins=[...$('mB').querySelectorAll('input.pr')]; const e=ins.filter(i=>!(parseFloat(i.value)>0)).length; const el=$('npLeft'); if(el) el.textContent=e?`${e} ${T('صنف لسه من غير سعر')}`:T('كل الأصناف ليها سعر'); }

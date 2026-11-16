@@ -5,8 +5,15 @@ package main
 // 2) اللي مالقاش ليه سعر بيظهر في جدول قبل التحويل وانت بتكتب سعره (وبيتحفظ للمرة الجاية كاقتراح)
 
 import (
+	"bytes"
+	"fmt"
+	"io"
 	"math"
+	"net/http"
 	"sort"
+	"strings"
+
+	"github.com/xuri/excelize/v2"
 )
 
 func monthIdx(k string) int {
@@ -304,4 +311,143 @@ func (s *storeState) fillUnits() map[string]interface{} {
 		items[x.key] = true
 	}
 	return map[string]interface{}{"rows": rows, "items": len(items), "missing": len(miss)}
+}
+
+// 2.16: أسعار من ملف إكسيل — بس لما تختار «أيوه» في شاشة الأصناف اللي من غير سعر
+// الملف: أي شيت فيه كود الصنف و/أو اسم الصنف + السعر (أو القيمة والكمية). البرنامج بيلاقي الشيت والعناوين لوحده.
+func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseMultipartForm(200 << 20); err != nil {
+		fail(w, fmt.Errorf("اختار ملف"))
+		return
+	}
+	fh, hdr, err := r.FormFile("file")
+	if err != nil {
+		fail(w, fmt.Errorf("اختار ملف"))
+		return
+	}
+	defer fh.Close()
+	data, _ := io.ReadAll(fh)
+	f, err := excelize.OpenReader(bytes.NewReader(data))
+	if err != nil {
+		fail(w, fmt.Errorf("مش قادر أفتح الملف: %v", err))
+		return
+	}
+	defer f.Close()
+	type cand struct {
+		sheet                             string
+		rows                              [][]string
+		h                                 int
+		code, name, desc, price, amt, qty int
+		score                             int
+	}
+	var best *cand
+	for _, sh := range f.GetSheetList() {
+		rows, err := f.GetRows(sh, excelize.Options{RawCellValue: true})
+		if err != nil || len(rows) < 2 {
+			continue
+		}
+		h := detectHeader(rows)
+		m := autoMap(rows[h])
+		c := &cand{sheet: sh, rows: rows, h: h, code: m.Cols["code"], name: m.Cols["name"], desc: m.Cols["desc"], price: m.Cols["rate"], amt: m.Cols["amount"], qty: m.Cols["qty"]}
+		if c.price < 0 {
+			c.price = m.Cols["rate2"]
+		}
+		if c.code < 0 && c.name < 0 && c.desc < 0 {
+			continue
+		}
+		if c.price < 0 && (c.amt < 0 || c.qty < 0) {
+			continue
+		}
+		c.score = scoreHeader(rows[h])
+		if best == nil || c.score > best.score {
+			best = c
+		}
+	}
+	if best == nil {
+		fail(w, fmt.Errorf("مالقيتش في الملف شيت فيه كود أو اسم الصنف + السعر"))
+		return
+	}
+	type acc struct {
+		q, a, p float64
+		n       int
+	}
+	byCode, byName := map[string]*acc{}, map[string]*acc{}
+	get := func(r []string, j int) string {
+		if j < 0 || j >= len(r) {
+			return ""
+		}
+		return strings.TrimSpace(r[j])
+	}
+	put := func(m map[string]*acc, k string, q, a, p float64) {
+		if k == "" {
+			return
+		}
+		x := m[k]
+		if x == nil {
+			x = &acc{}
+			m[k] = x
+		}
+		if q != 0 && a != 0 {
+			x.q += q
+			x.a += a
+		}
+		if p != 0 {
+			x.p += p
+			x.n++
+		}
+	}
+	lines := 0
+	for i := best.h + 1; i < len(best.rows); i++ {
+		r := best.rows[i]
+		p, _ := numv(get(r, best.price))
+		q, _ := numv(get(r, best.qty))
+		a, _ := numv(get(r, best.amt))
+		if p == 0 && (q == 0 || a == 0) {
+			continue
+		}
+		lines++
+		code, name := get(r, best.code), cleanS(get(r, best.name))
+		if name == "" {
+			name = cleanS(get(r, best.desc))
+		}
+		if code != "" {
+			put(byCode, "c:"+normAr(code), q, a, p)
+		}
+		if name != "" {
+			put(byName, "n:"+normAr(name), q, a, p)
+		}
+	}
+	val := func(x *acc) float64 {
+		if x == nil {
+			return 0
+		}
+		if x.q != 0 && x.a != 0 {
+			return x.a / x.q
+		}
+		if x.n > 0 {
+			return x.p / float64(x.n)
+		}
+		return 0
+	}
+	// طابق على الأصناف اللي لسه من غير سعر
+	matched := map[string]float64{}
+	seen := map[string]bool{}
+	for _, x := range sst.parsed {
+		if !x.NoPrice || x.PriceBy == "month" || seen[x.key] {
+			continue
+		}
+		seen[x.key] = true
+		p := 0.0
+		if x.Code != "" {
+			p = val(byCode["c:"+normAr(x.Code)])
+		}
+		if p == 0 {
+			p = val(byName[nameKey(x)])
+		}
+		if p > 0 {
+			matched[x.key] = math.Round(p*1e4) / 1e4
+		}
+	}
+	writeJSON(w, 200, map[string]interface{}{"file": hdr.Filename, "sheet": best.sheet, "lines": lines,
+		"matched": matched, "count": len(matched), "total": len(seen)})
 }

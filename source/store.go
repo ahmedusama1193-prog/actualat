@@ -1463,5 +1463,6 @@ func registerStore(mux *http.ServeMux) {
 	mux.HandleFunc("/api/prepare", sSafe(hStorePrepare))
 	mux.HandleFunc("/api/convert", sSafe(hStoreConvert))
 	mux.HandleFunc("/api/save", sSafe(hStoreSave))
+	mux.HandleFunc("/api/store/price-file", sSafe(hStorePriceFile))
 	mux.HandleFunc("/api/reset-memory", sSafe(hStoreReset))
 }
