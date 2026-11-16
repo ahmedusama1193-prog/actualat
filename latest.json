@@ -1,6 +1,6 @@
 {
-  "version": "2.22",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/83e735c80073a3c83bc2dff00bb7f4c8b1657016/Actualat.exe",
-  "sha256": "1459ca25072f92fc181d51f2083b2604ced5f3150d1b88909727977a7c8f8c42",
-  "notes": "الأسعار الناقصة: عدد الباقي بعد الحفظ، فلتر اللي من غير سعر، تصدير الكل أو الناقص بس"
+  "version": "2.23",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/3e85906cd44c53278e11de9cb1e25f73f56c3b16/Actualat.exe",
+  "sha256": "f31b069b0b3616875c16f62206d423497b6bc3772e634ebf7529c392f7ca3ca6",
+  "notes": "جدول الأكواد بعرض الشاشة كلها"
 }
