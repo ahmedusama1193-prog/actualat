@@ -67,7 +67,7 @@ func (s *storeState) fillPrices() []*noPriceItem {
 		byKey[k][m].a += a
 	}
 	for _, x := range s.parsed {
-		x.NoPrice, x.Fill, x.FillM, x.PriceBy = false, 0, "", ""
+		x.NoPrice, x.Fill, x.FillM, x.PriceBy, x.FillName = false, 0, "", "", ""
 		if x.Qty == 0 {
 			continue
 		}
@@ -123,6 +123,18 @@ func (s *storeState) fillPrices() []*noPriceItem {
 		a := ms[best]
 		return a.a / a.q, best
 	}
+	// أسماء الأصناف اللي ليها سعر (للبحث بأقرب اسم)
+	var plist []*pfName
+	seenN := map[string]bool{}
+	for _, x := range s.parsed {
+		if x.NoPrice || x.Qty == 0 {
+			continue
+		}
+		if k := nameKey(x); !seenN[k] && byKey[k] != nil {
+			seenN[k] = true
+			plist = append(plist, &pfName{name: x.label(), key: k, tk: pfTokens(x.label())})
+		}
+	}
 	items := map[string]*noPriceItem{}
 	var order []string
 	for _, x := range s.parsed {
@@ -133,8 +145,15 @@ func (s *storeState) fillPrices() []*noPriceItem {
 		if p == 0 {
 			p, m = nearest(nameKey(x), x)
 		}
+		like := ""
+		if p == 0 { // نفس الصنف مكتوب بشكل مختلف شوية (مسافة/حرف/ترتيب كلام) — بنفس المقاسات
+			if c := pfBest(x.label(), plist); c != nil {
+				p, m = nearest(c.key, x)
+				like = c.name
+			}
+		}
 		if p != 0 {
-			x.Fill, x.FillM, x.PriceBy = p, m, "month"
+			x.Fill, x.FillM, x.PriceBy, x.FillName = p, m, "month", like
 			x.Rate, x.HasR = p, true
 			continue
 		}
@@ -221,7 +240,7 @@ func (s *storeState) priceLines(by string, sel map[string]bool) []*fillLine {
 		if sel != nil && x.HasD && !sel[x.Date.Format("2006-01")] {
 			continue
 		}
-		k := x.key + "|" + x.FillM
+		k := x.key + "|" + x.FillM + "|" + x.FillName
 		l := m[k]
 		if l == nil {
 			from := "سعر دخلته"
@@ -229,6 +248,9 @@ func (s *storeState) priceLines(by string, sel map[string]bool) []*fillLine {
 				from = arMonthLabel(x.FillM)
 				if x.FillM == "0000-00" {
 					from = "صفوف من غير تاريخ"
+				}
+				if x.FillName != "" {
+					from += " — صنف بنفس الاسم تقريبًا: " + x.FillName
 				}
 			}
 			l = &fillLine{Code: x.Code, Name: x.label(), Unit: x.Unit, From: from, Price: math.Round(x.Rate*1e4) / 1e4}

@@ -202,29 +202,30 @@ func saveStoreMem() {
 
 // ------------------------------------------------------------------ state
 type sRow struct {
-	Row     int
-	Cells   []string
-	Date    time.Time
-	HasD    bool
-	RawD    string
-	Code    string
-	Name    string
-	Desc    string
-	Unit    string
-	Qty     float64
-	Rate    float64
-	HasR    bool
-	Amount  float64
-	HasA    bool
-	Task    string
-	Cost    string
-	Section string
-	File    string  // اسم الملف لو رفعت كذا ملف مع بعض
-	NoPrice bool    // الصنف ده مالوش سعر ولا قيمة في الشيت (والكمية مش صفر)
-	Fill    float64 // سعر من أقرب شهر لنفس الصنف (لو لقى)
-	FillM   string  // الشهر اللي السعر جاي منه
-	PriceBy string  // "month" | "user" — مصدر السعر اللي اتحط
-	key     string
+	Row      int
+	Cells    []string
+	Date     time.Time
+	HasD     bool
+	RawD     string
+	Code     string
+	Name     string
+	Desc     string
+	Unit     string
+	Qty      float64
+	Rate     float64
+	HasR     bool
+	Amount   float64
+	HasA     bool
+	Task     string
+	Cost     string
+	Section  string
+	File     string  // اسم الملف لو رفعت كذا ملف مع بعض
+	NoPrice  bool    // الصنف ده مالوش سعر ولا قيمة في الشيت (والكمية مش صفر)
+	Fill     float64 // سعر من أقرب شهر لنفس الصنف (لو لقى)
+	FillM    string  // الشهر اللي السعر جاي منه
+	FillName string  // لو السعر جه من صنف اسمه قريب (مش نفس الاسم بالظبط)
+	PriceBy  string  // "month" | "user" — مصدر السعر اللي اتحط
+	key      string
 }
 
 type storeState struct {
