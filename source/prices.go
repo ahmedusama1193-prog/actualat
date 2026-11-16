@@ -401,6 +401,7 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 	}
 	byCode, byName := map[string]*acc{}, map[string]*acc{}
 	var plist []*pfName
+	codeName := map[string]string{}
 	get := func(r []string, j int) string {
 		if j < 0 || j >= len(r) {
 			return ""
@@ -438,6 +439,9 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 		code, name := get(r, best.code), cleanS(get(r, best.name))
 		if code != "" {
 			put(byCode, "c:"+normAr(code), q, a, p)
+			if _, ok := codeName[normAr(code)]; !ok {
+				codeName[normAr(code)] = name
+			}
 		}
 		if name != "" {
 			k := "n:" + normAr(name)
@@ -468,10 +472,25 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		seen[x.key] = true
-		p, nm := val(byName[nameKey(x)]), ""
-		if p == 0 {
-			if c := pfBest(x.label()+" "+x.Desc, plist); c != nil {
-				p, nm = val(byName[c.key]), c.name
+		p, nm := 0.0, ""
+		if x.Code != "" { // بالكود الأول
+			if a := byCode["c:"+normAr(x.Code)]; a != nil {
+				p, nm = val(a), codeName[normAr(x.Code)]
+			}
+		}
+		if p == 0 { // بنفس الاسم
+			p = val(byName[nameKey(x)])
+		}
+		if p == 0 { // بأقرب اسم — عربي أو إنجليزي
+			if cs := pfMatches(x.label(), plist); len(cs) > 0 {
+				sum := 0.0
+				for _, c := range cs {
+					sum += val(byName[c.key])
+				}
+				p, nm = sum/float64(len(cs)), cs[0].name
+				if len(cs) > 1 {
+					nm = fmt.Sprintf("%s (+%d صنف شبهه — متوسط سعرهم)", nm, len(cs)-1)
+				}
 			}
 		}
 		if p > 0 {
@@ -590,73 +609,93 @@ func pfTokens(s string) map[string]bool {
 			w = "cm"
 		case "م", "متر":
 			w = "m"
-		case "x", "", "و", "of", "with", "and", "the", "for":
+		case "وات", "watt":
+			w = "w"
+		case "انش", "بوصه", "inches", "in":
+			w = "inch"
+		case "كجم", "كيلو", "kgs":
+			w = "kg"
+		case "x", "", "و", "of", "with", "and", "the", "for", "size", "مقاس", "نوع", "ref":
 			continue
 		}
 		if strings.HasPrefix(w, "ال") && len([]rune(w)) > 4 {
 			w = string([]rune(w)[2:])
 		}
-		out[w] = true
+		if w == "" {
+			continue
+		}
+		out[canonWord(w)] = true
+	}
+	if out["pipe"] && out["electrical"] { // ماسورة كهرباء = conduit
+		out["conduit"] = true
+		delete(out, "pipe")
+		delete(out, "electrical")
 	}
 	return out
 }
 
 func isNum(w string) bool { return w != "" && strings.Trim(w, "0123456789.") == "" }
 
-// pfBest: أقرب اسم في ملف الأسعار — لازم كلمتين مشتركين على الأقل، والأرقام (المقاسات) تبقى زي بعض
-func pfBest(name string, list []*pfName) *pfName {
+// pfBest / pfMatches: أقرب اسم — لازم معظم كلمات اسم الصنف (بعد الترجمة عربي↔إنجليزي) تكون موجودة، والمقاسات (الأرقام) كلها موجودة.
+// لو فيه كذا اسم بنفس الدرجة (زي خوذة بكذا لون) بيرجعهم كلهم والسعر بيبقى متوسطهم.
+func pfMatches(name string, list []*pfName) []*pfName {
 	a := pfTokens(name)
 	if len(a) == 0 {
 		return nil
 	}
-	var best *pfName
-	bs := 0.0
-	for _, c := range list {
-		n, numA, numHit := 0, 0, 0
-		for w := range a {
-			if isNum(w) {
-				numA++
-				if c.tk[w] {
-					numHit++
-				}
-			}
-			if c.tk[w] {
-				n++
-			}
-		}
-		if n < 2 || numHit < numA {
-			continue
-		}
-		extra := false // رقم (مقاس) في الاسم ده مش في اسم الصنف ← صنف تاني
-		for w := range c.tk {
-			if isNum(w) && !a[w] {
-				extra = true
-				break
-			}
-		}
-		if extra && numA > 0 {
-			continue
-		}
-		// لازم معظم كلمات اسم الصنف (غير الأرقام) تكون في الاسم ده — عشان مايطابقش «طبة» على «كوع» بس عشان المقاس واحد
-		wa, wh := 0, 0
-		for w := range a {
-			if !isNum(w) && w != "mm" && w != "cm" && w != "m" {
-				wa++
-				if c.tk[w] {
-					wh++
-				}
-			}
-		}
-		if wa == 0 || float64(wh)/float64(wa) < 0.6 {
-			continue
-		}
-		sc := float64(n) / float64(len(a)+len(c.tk)-n)
-		if sc > bs {
-			best, bs = c, sc
+	wa := 0
+	for w := range a {
+		if !isNum(w) && !unitTok[w] {
+			wa++
 		}
 	}
-	if bs < 0.34 {
+	if wa == 0 {
 		return nil
 	}
-	return best
+	var out []*pfName
+	bc, bj := 0.0, 0.0
+	for _, c := range list {
+		n, wh, numA, numHit := 0, 0, 0, 0
+		for w := range a {
+			hit := c.tk[w]
+			if hit {
+				n++
+			}
+			if isNum(w) {
+				numA++
+				if hit {
+					numHit++
+				}
+			} else if !unitTok[w] && hit {
+				wh++
+			}
+		}
+		if numHit < numA || wh == 0 || (wa >= 2 && wh < 2) {
+			continue
+		}
+		cov := float64(wh) / float64(wa)
+		if cov < 0.6 {
+			continue
+		}
+		j := float64(n) / float64(len(a)+len(c.tk)-n)
+		if j < 0.12 { // اسم طويل فيه الكلمة بالصدفة (زي باب كامل فيه «Lock») — مش نفس الصنف
+			continue
+		}
+		switch {
+		case cov > bc+1e-9 || (cov > bc-1e-9 && j > bj+1e-9):
+			out, bc, bj = []*pfName{c}, cov, j
+		case cov > bc-1e-9 && j > bj-1e-9:
+			out = append(out, c)
+		}
+	}
+	return out
 }
+
+func pfBest(name string, list []*pfName) *pfName {
+	if m := pfMatches(name, list); len(m) > 0 {
+		return m[0]
+	}
+	return nil
+}
+
+var unitTok = map[string]bool{"mm": true, "cm": true, "m": true, "inch": true, "w": true, "kg": true, "l": true, "v": true, "pcs": true}
