@@ -334,11 +334,11 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 	}
 	defer f.Close()
 	type cand struct {
-		sheet                             string
-		rows                              [][]string
-		h                                 int
-		code, name, desc, price, amt, qty int
-		score                             int
+		sheet                       string
+		rows                        [][]string
+		h                           int
+		code, name, price, amt, qty int
+		n                           int
 	}
 	var best *cand
 	for _, sh := range f.GetSheetList() {
@@ -346,25 +346,30 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 		if err != nil || len(rows) < 2 {
 			continue
 		}
-		h := detectHeader(rows)
-		m := autoMap(rows[h])
-		c := &cand{sheet: sh, rows: rows, h: h, code: m.Cols["code"], name: m.Cols["name"], desc: m.Cols["desc"], price: m.Cols["rate"], amt: m.Cols["amount"], qty: m.Cols["qty"]}
-		if c.price < 0 {
-			c.price = m.Cols["rate2"]
-		}
-		if c.code < 0 && c.name < 0 && c.desc < 0 {
+		h, cols := pfHeader(rows)
+		if h < 0 {
 			continue
 		}
-		if c.price < 0 && (c.amt < 0 || c.qty < 0) {
-			continue
+		c := &cand{sheet: sh, rows: rows, h: h, code: cols[0], name: cols[1], price: cols[2], amt: cols[3], qty: cols[4]}
+		// الشيت اللي فيه أكتر صفوف بسعر هو اللي بيتاخد
+		for i := h + 1; i < len(rows); i++ {
+			r := rows[i]
+			j := c.price
+			if j < 0 {
+				j = c.amt
+			}
+			if j >= 0 && j < len(r) {
+				if v, ok := numv(strings.TrimSpace(r[j])); ok && v != 0 {
+					c.n++
+				}
+			}
 		}
-		c.score = scoreHeader(rows[h])
-		if best == nil || c.score > best.score {
+		if c.n > 0 && (best == nil || c.n > best.n) {
 			best = c
 		}
 	}
 	if best == nil {
-		fail(w, fmt.Errorf("مالقيتش في الملف شيت فيه كود أو اسم الصنف + السعر"))
+		fail(w, fmt.Errorf("مالقيتش في الملف شيت فيه عمود كود الصنف أو اسمه + عمود السعر"))
 		return
 	}
 	type acc struct {
@@ -407,9 +412,6 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 		}
 		lines++
 		code, name := get(r, best.code), cleanS(get(r, best.name))
-		if name == "" {
-			name = cleanS(get(r, best.desc))
-		}
 		if code != "" {
 			put(byCode, "c:"+normAr(code), q, a, p)
 		}
@@ -450,4 +452,76 @@ func hStorePriceFile(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, 200, map[string]interface{}{"file": hdr.Filename, "sheet": best.sheet, "lines": lines,
 		"matched": matched, "count": len(matched), "total": len(seen)})
+}
+
+// pfHeader: عناوين ملف الأسعار بمرونة (أي عنوان «فيه» الكلمة): صف العناوين و [كود، اسم، سعر، قيمة، كمية]
+func pfHeader(rows [][]string) (int, [5]int) {
+	has := func(n string, ws ...string) bool {
+		for _, w := range ws {
+			if strings.Contains(n, normAr(w)) {
+				return true
+			}
+		}
+		return false
+	}
+	bestH, bestS := -1, 0
+	var bestC [5]int
+	for i := 0; i < len(rows) && i < 40; i++ {
+		c := [5]int{-1, -1, -1, -1, -1}
+		cs := [5]int{}
+		set := func(k, j, pr int) {
+			if c[k] < 0 || pr > cs[k] {
+				c[k], cs[k] = j, pr
+			}
+		}
+		for j, x := range rows[i] {
+			n := normH(x)
+			if n == "" || len([]rune(n)) > 40 {
+				continue
+			}
+			skip := has(n, "مستوي", "تصنيف", "تاسك", "task", "cost", "تكلفه", "level", "نسبه", "%")
+			switch {
+			case !skip && has(n, "كود", "code", "رقم الصنف", "رقم البند"):
+				pr := 1
+				if has(n, "صنف", "بند", "item", "ماده", "resource") {
+					pr = 3
+				} else if n == "كود" || n == "code" || n == "الكود" {
+					pr = 2
+				}
+				set(0, j, pr)
+			case has(n, "سعر", "price", "rate", "unit cost", "الفئه"):
+				pr := 1
+				if has(n, "وحده", "unit") {
+					pr = 2
+				}
+				set(2, j, pr)
+			case has(n, "كميه", "qty", "quantity"):
+				set(4, j, 1)
+			case has(n, "قيمه", "اجمالي", "amount", "total", "value"):
+				set(3, j, 1)
+			case !skip && has(n, "اسم", "الصنف", "البند", "الوصف", "بيان", "item", "description", "name", "material", "ماده"):
+				pr := 1
+				if has(n, "اسم", "name") {
+					pr = 2
+				}
+				set(1, j, pr)
+			}
+		}
+		if c[0] < 0 && c[1] < 0 {
+			continue
+		}
+		if c[2] < 0 && (c[3] < 0 || c[4] < 0) {
+			continue
+		}
+		sc := 0
+		for _, v := range c {
+			if v >= 0 {
+				sc++
+			}
+		}
+		if sc > bestS {
+			bestH, bestS, bestC = i, sc, c
+		}
+	}
+	return bestH, bestC
 }
