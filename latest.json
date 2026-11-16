@@ -1,6 +1,6 @@
 {
-  "version": "2.15",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/1f054edb1dbee8e8744373ba9645770d88fca9a8/Actualat.exe",
-  "sha256": "836e88e3a35aa456f8d18201de29bc25b431ba08b4ebc0f2f39bc50f3bed0a26",
-  "notes": "أسعار ووحدات من أقرب شهر · شاشة للأصناف من غير سعر · تقرير الأعمدة في شاشة منبثقة"
+  "version": "2.16",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/7d99644ec02f5f0520853b5e8e7b32917e784d05/Actualat.exe",
+  "sha256": "d5dcbed15afa579a5207a5faa0ef2fcdc97ca0220975dae4a27313bf3ece15a0",
+  "notes": "أسعار الأصناف الناقصة من ملف إكسيل (اختياري)"
 }
