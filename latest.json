@@ -1,6 +1,6 @@
 {
-  "version": "2.20",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/3d925d6809bd5973063fc3b926ab9d463de0bf00/Actualat.exe",
-  "sha256": "581487338d996db10d7923f17d1793a2302ba6896d83925d0fbe603fdd472cec",
-  "notes": "ملف الأسعار: الكود + الاسم + ربط العربي بالإنجليزي"
+  "version": "2.21",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/34fba013ac7bc394928af472cbbee12ee791d001/Actualat.exe",
+  "sha256": "04d8301a6d4da6609829a9ded52009c2b88a12cecdc6dcbfccc529d56c26bc37",
+  "notes": "تصدير الأصناف اللي من غير سعر لإكسيل ورفعها بعد التسعير"
 }
