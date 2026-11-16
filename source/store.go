@@ -71,6 +71,7 @@ type storeMemory struct {
 	Sections map[string]string       `json:"sections"` // القسم -> Task Code
 	Imported bool                    `json:"importedV3"`
 	CodesRev int                     `json:"codesRev"`
+	Prices   map[string]float64      `json:"prices,omitempty"` // أسعار دخلتها بإيدك للأصناف اللي مالهاش سعر (2.15)
 }
 
 type learnedEntry struct {
@@ -105,6 +106,9 @@ func loadStoreMem() {
 	}
 	if smem.Sections == nil {
 		smem.Sections = map[string]string{}
+	}
+	if smem.Prices == nil {
+		smem.Prices = map[string]float64{}
 	}
 	if !smem.Imported {
 		importV3Memory()
@@ -215,7 +219,11 @@ type sRow struct {
 	Task    string
 	Cost    string
 	Section string
-	File    string // اسم الملف لو رفعت كذا ملف مع بعض
+	File    string  // اسم الملف لو رفعت كذا ملف مع بعض
+	NoPrice bool    // الصنف ده مالوش سعر ولا قيمة في الشيت (والكمية مش صفر)
+	Fill    float64 // سعر من أقرب شهر لنفس الصنف (لو لقى)
+	FillM   string  // الشهر اللي السعر جاي منه
+	PriceBy string  // "month" | "user" — مصدر السعر اللي اتحط
 	key     string
 }
 
@@ -902,6 +910,8 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 	smem.mu.Unlock()
 	saveStoreMem()
 	sst.parse()
+	unitFill := sst.fillUnits()
+	noPrice := sst.fillPrices()
 
 	type mInfo struct {
 		Key    string  `json:"key"`
@@ -970,7 +980,7 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 		srcCount[g.Task.Src]++
 	}
 	writeJSON(w, 200, map[string]interface{}{"rows": len(sst.parsed), "amount": r2(total), "months": months, "noDate": noDate,
-		"groups": groups, "codes": sst.cl, "links": codeLinks(sst.cl), "codesFrom": sst.clSrc, "autoSrc": srcCount,
+		"groups": groups, "codes": sst.cl, "links": codeLinks(sst.cl), "noPrice": noPrice, "priceFill": sst.fillSummary(), "unitFill": unitFill, "codesFrom": sst.clSrc, "autoSrc": srcCount,
 		"codeFix": map[string]int{"taskConverted": fixT, "costConverted": fixC, "taskCleared": clrT, "costCleared": clrC}})
 }
 
@@ -993,6 +1003,7 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		Months     []string                     `json:"months"`
 		NoDateDate string                       `json:"noDateDate"`
 		Codes      map[string]map[string]string `json:"codes"`
+		Prices     map[string]float64           `json:"prices"` // أسعار الأصناف اللي مالهاش سعر (بإيدك)
 	}
 	if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
 		fail(w, err)
@@ -1017,6 +1028,7 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		fail(w, fmt.Errorf("اختار شهر واحد على الأقل"))
 		return
 	}
+	sst.applyPrices(b.Prices)
 	// احفظ الأكواد اللي اتراجعت
 	smem.mu.Lock()
 	for k, v := range b.Codes {
@@ -1349,6 +1361,21 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		}
 		put("الأكواد", cr, []float64{14, 44, 14, 10, 14, 12, 30, 12, 34, 24})
 	}
+	pm, pu := sst.priceLines("month", sel), sst.priceLines("user", sel)
+	var pmAmt, puAmt float64
+	if len(pm)+len(pu) > 0 {
+		pr := [][]interface{}{{"كود الصنف", "الصنف", "الوحدة", "عدد البنود", "الكمية", "السعر اللي اتحط", "القيمة", "السعر جاي من"}}
+		for _, l := range append(append([]*fillLine{}, pm...), pu...) {
+			pr = append(pr, []interface{}{l.Code, l.Name, l.Unit, l.Rows, l.Qty, l.Price, l.Amt, l.From})
+		}
+		put("الأسعار", pr, []float64{14, 44, 10, 10, 12, 14, 14, 22})
+	}
+	for _, l := range pm {
+		pmAmt += l.Amt
+	}
+	for _, l := range pu {
+		puAmt += l.Amt
+	}
 	rv.DeleteSheet("Sheet1")
 	rb, _ := rv.WriteToBuffer()
 	rv.Close()
@@ -1369,8 +1396,10 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		"sheetItems": shItems, "sheetQty": r2(shQty), "sheetAmount": r2(shAmt),
 		"items": len(outs), "qty": r2(oQty), "amount": r2(oAmt), "byMonth": bm,
 		"noRate": noRate, "noTask": noTask, "noCost": noCost, "excluded": exQty + exCost, "excludedNoDate": exDate,
-		"autoCoded": len(codeOrder),
-		"previous":  samePeriod("store", tag, reqUser(r)),
+		"autoCoded":  len(codeOrder),
+		"priceMonth": map[string]interface{}{"items": len(pm), "amount": r2(pmAmt)},
+		"priceUser":  map[string]interface{}{"items": len(pu), "amount": r2(puAmt)},
+		"previous":   samePeriod("store", tag, reqUser(r)),
 	})
 }
 

@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=31">
-<link rel="stylesheet" href="/assets/theme.css?v=31">
-<script src="/assets/i18n.js?v=31"></script>
+<link rel="stylesheet" href="/assets/base.css?v=32">
+<link rel="stylesheet" href="/assets/theme.css?v=32">
+<script src="/assets/i18n.js?v=32"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 <style>
   .cpick{display:inline-flex;align-items:center;position:relative}
@@ -29,6 +29,21 @@
   #pick .pall{display:block;width:100%;text-align:start;padding:8px 12px;border:none;border-top:1px solid var(--line);background:none;color:var(--pri);font:inherit;font-size:12.5px;cursor:pointer}
   #pick .pe{padding:10px 12px;color:var(--muted);font-size:12.5px}
   tr.flash td{transition:background .6s;background:color-mix(in srgb,var(--pri) 12%,transparent)}
+  /* 2.15: شاشة منبثقة */
+  .modal{position:fixed;inset:0;z-index:60;background:rgba(8,12,10,.55);display:flex;align-items:center;justify-content:center;padding:28px}
+  .modal.hidden{display:none}
+  .mbox{background:var(--card,var(--bg));border:1px solid var(--line2);border-radius:14px;box-shadow:0 24px 60px rgba(0,0,0,.35);width:min(980px,100%);max-height:100%;display:flex;flex-direction:column}
+  .mhd{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .mhd b{font-size:17px}
+  .mx{border:none;background:none;color:var(--muted);font-size:20px;cursor:pointer;width:34px;height:34px;border-radius:8px}
+  .mx:hover{background:var(--line);color:var(--ink)}
+  .mbody{flex:1;min-height:0;overflow:auto;padding:16px 20px}
+  .mft{display:flex;gap:10px;align-items:center;justify-content:flex-end;padding:14px 20px;border-top:1px solid var(--line)}
+  .mft .grow{flex:1}
+  .mbody table th{position:sticky;top:-16px;background:var(--card)!important;z-index:2}
+  input.pr{width:120px;direction:ltr;text-align:left;padding:6px 9px}
+  .pnote{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px}
+  .pnote .btn{height:auto!important;min-height:0!important;padding:6px 14px!important;line-height:1.4!important;font-size:13px!important}
 </style>
 </head>
 <body>
@@ -70,6 +85,7 @@
     </div>
     <div id="months" class="months"></div>
     <div id="nodateNote"></div>
+    <div id="priceNote"></div>
   </div>
 
   <!-- 4 -->
@@ -106,6 +122,11 @@
   </div>
 
 </main>
+<div id="modal" class="modal hidden" onmousedown="if(event.target===this)closeModal()"><div class="mbox" role="dialog" aria-modal="true">
+  <div class="mhd"><b id="mT"></b><button class="mx" onclick="closeModal()" title="إغلاق">✕</button></div>
+  <div class="mbody" id="mB"></div>
+  <div class="mft" id="mF"></div>
+</div></div>
 <div id="pick" class="hidden" onmousedown="if(event.target.id!=='pickQ')event.preventDefault()">
   <div class="phd"><div class="ptl" id="pickT"></div>
     <div class="psr"><input id="pickQ" autocomplete="off" placeholder="بحث بالاسم أو الكود…" oninput="pk.act=-1;renderPick()" onkeydown="pickKey(event,pk.inp,true)" onblur="setTimeout(closePick,150)">
@@ -155,7 +176,7 @@ function showInfo(j){
   if(many && j.merged){
     $('filesNote').innerHTML=`<b>${T('الملفات اللي اتجمعت')} (${j.merged.length})</b><table style="max-width:720px;margin-top:6px"><tr><th>${T('الملف')}</th><th>${T('الشيت')}</th><th>${T('عدد الصفوف')}</th></tr>`+
       j.merged.map(m=>`<tr><td translate="no">${esc(m.file)}</td><td translate="no">${esc(m.sheet)}</td><td class="n">${fmt(m.rows)}</td></tr>`).join('')+'</table>'+
-      colsReport(j)+
+      colsButton(j)+
       `<div class="muted" style="margin-top:6px">${T('قوايم الأعمدة تحت فيها عناوين كل الملفات. اختيار الشيت وصف العناوين للملف الأول، والباقيين البرنامج بيلاقيهم لوحده.')}</div>`;
     show('filesNote');
   } else hide('filesNote');
@@ -185,6 +206,15 @@ function sampleOf(sel){
   }
   $('smp_'+sel.dataset.k).innerHTML=txt;
 }
+// ---------- الشاشة المنبثقة ----------
+function openModal(title,body,foot){ $('mT').textContent=title; $('mB').innerHTML=body; $('mF').innerHTML=foot||`<button class="btn" onclick="closeModal()">${T('تمام')}</button>`; $('modal').classList.remove('hidden'); $('mB').scrollTop=0; }
+function closeModal(){ $('modal').classList.add('hidden'); }
+addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('modal').classList.contains('hidden')) closeModal(); });
+function colsButton(j){
+  const n=j.files.length, diff=j.headers.filter(h=>(h.files||[]).length<n).length, common=j.headers.length-diff;
+  return `<div class="pnote" style="margin-top:12px"><span>${T('الأعمدة:')} <b>${common}</b> ${T('مشتركة')}${diff?` · <b style="color:var(--warn)">${diff}</b> ${T('مش في كل الملفات')}`:` · <span class="ok">${T('كل الملفات فيها نفس الأعمدة')}</span>`}</span>
+    <button class="btn sec" onclick="openModal(T('تقرير الأعمدة'),colsReport(info))">${T('تقرير الأعمدة')}</button></div>`;
+}
 // الأعمدة المشتركة في كل الملفات + الأعمدة اللي في بعضهم بس
 function colsReport(j){
   const n=j.files.length, common=[], diff=[];
@@ -212,6 +242,7 @@ async function prepare(){
     const nd=prep.noDate||[]; const last=prep.months.length?prep.months[prep.months.length-1].key:null;
     let ndDef=''; if(last){const [y,mo]=last.split('-').map(Number); ndDef=new Date(Date.UTC(y,mo,0)).toISOString().slice(0,10);}
     const ndAmt=nd.reduce((a,x)=>a+(x.total||0),0);
+    prices={}; renderPriceNote();
     $('nodateNote').innerHTML = nd.length ? `<div class="warnbox"><label><input type="checkbox" id="ndOn" checked> انقل كمان <b>${fmt(nd.length)}</b> بند تاريخهم فاضي أو مش مفهوم (قيمتهم ${fmt(ndAmt)}) بتاريخ: <input type="date" id="ndDate" value="${ndDef}"></label></div>` : '';
     show('s3');
     // codes
@@ -347,11 +378,53 @@ addEventListener('scroll',()=>{ if(pk.inp) placePick(); },true);
 addEventListener('resize',()=>{ if(pk.inp) placePick(); });
 function pickAll(v){ document.querySelectorAll('#months input').forEach(i=>{i.checked=v;i.parentNode.classList.toggle('on',v);}); }
 
+// ---------- أصناف من غير سعر ----------
+let prices={};
+function npLeft(){ return (prep.noPrice||[]).filter(it=>!(prices[it.key]>0)); }
+function renderPriceNote(){
+  const pf=prep.priceFill||{items:0}, np=prep.noPrice||[], left=npLeft(), uf=prep.unitFill||{rows:0};
+  if(!pf.items && !np.length && !uf.rows){ $('priceNote').innerHTML=''; return; }
+  let h='<div class="warnbox pnote" style="margin-top:10px">';
+  if(uf.rows) h+=`<span><i class="ic ok"></i><b>${fmt(uf.rows)}</b> ${T('بند من غير وحدة خدوا وحدة نفس الصنف من أقرب شهر')} (${fmt(uf.items)} ${T('صنف')})${uf.missing?` · ${fmt(uf.missing)} ${T('صنف مالقيتلهمش وحدة')}`:''}</span><span style="flex-basis:100%;height:0"></span>`;
+  if(pf.items) h+=`<span><i class="ic ok"></i><b>${fmt(pf.items)}</b> ${T('صنف مالهمش سعر في الشيت خدوا سعر من أقرب شهر')} (${fmt(pf.amount)})</span><button class="link" onclick="showFilled()">${T('عرض')}</button>`;
+  if(np.length){
+    if(pf.items) h+='<span style="flex-basis:100%;height:0"></span>';
+    h+= left.length ? `<span><b>${fmt(left.length)}</b> ${T('صنف مالقيتلهمش سعر في أي شهر — حط أسعارهم قبل التحويل')}</span>`
+                    : `<span class="ok"><i class="ic ok"></i>${T('كل الأصناف اللي من غير سعر اتحطلها سعر')} (${fmt(np.length)})</span>`;
+    h+=`<button class="btn sec" onclick="showNoPrice()">${T(left.length?'حط الأسعار':'راجع الأسعار')}</button>`;
+  }
+  $('priceNote').innerHTML=h+'</div>';
+}
+function showFilled(){
+  const L=(prep.priceFill||{}).lines||[];
+  openModal(T('أسعار من أقرب شهر'),
+    `<div class="muted small" style="margin-bottom:10px">${T('الأصناف دي مالهاش سعر في الشهر بتاعها، فالبرنامج خد متوسط سعر نفس الصنف في أقرب شهر ليه (قبل أو بعد). هتلاقيهم كمان في شيت «الأسعار» في ملف المراجعة.')}</div>`+
+    `<table><thead><tr><th>${T('كود الصنف')}</th><th>${T('الصنف')}</th><th>${T('الوحدة')}</th><th>${T('الكمية')}</th><th>${T('السعر')}</th><th>${T('القيمة')}</th><th>${T('السعر جاي من')}</th></tr></thead><tbody>`+
+    L.map(l=>`<tr><td class="n" translate="no">${esc(l.code)}</td><td translate="no">${esc(l.name)}</td><td translate="no">${esc(l.unit)}</td><td class="n">${fmt(l.qty)}</td><td class="n">${fmt(l.price)}</td><td class="n">${fmt(l.amount)}</td><td>${esc(l.from)}</td></tr>`).join('')+'</tbody></table>');
+}
+function showNoPrice(forConvert){
+  const np=prep.noPrice||[];
+  const body=`<div class="muted small" style="margin-bottom:10px">${T('الأصناف دي مالهاش سعر في الشيت ولا في أي شهر تاني. اكتب سعر الوحدة لكل صنف. اللي هتسيبه فاضي هيتشال من ملف PCS (التكلفة صفر). السعر بيتحفظ ويظهرلك المرة الجاية كاقتراح.')}</div>`+
+    `<table><thead><tr><th>${T('كود الصنف')}</th><th>${T('الصنف')}</th><th>${T('الوحدة')}</th><th>${T('عدد البنود')}</th><th>${T('الكمية')}</th><th>${T('الشهور')}</th><th>${T('سعر الوحدة')}</th><th>${T('القيمة')}</th></tr></thead><tbody>`+
+    np.map((it,i)=>{ const v=prices[it.key]>0?prices[it.key]:(it.saved||'');
+      return `<tr><td class="n" translate="no">${esc(it.code)}</td><td translate="no">${esc(it.name)}</td><td translate="no">${esc(it.unit)}</td><td class="n">${fmt(it.rows)}</td><td class="n">${fmt(it.qty)}</td><td class="small">${esc((it.months||[]).join('، '))}</td>
+        <td><input class="pr" type="number" min="0" step="any" data-i="${i}" value="${v}" oninput="npAmt(this)">${it.saved&&!(prices[it.key]>0)?`<div class="muted small">${T('آخر سعر دخلته')}</div>`:''}</td><td class="n" id="npa${i}">${v?fmt(v*it.qty):''}</td></tr>`; }).join('')+'</tbody></table>';
+  const foot=`<span class="muted small grow" id="npLeft"></span><button class="btn sec" onclick="closeModal()">${T('إلغاء')}</button>`+
+    (forConvert?`<button class="btn sec" onclick="savePrices();closeModal();convert(true)">${T('حوّل من غير الناقص')}</button><button class="btn" onclick="savePrices();closeModal();convert(true)">${T('حفظ وتحويل')}</button>`
+               :`<button class="btn" onclick="savePrices();closeModal()">${T('حفظ الأسعار')}</button>`);
+  openModal(T('أصناف من غير سعر')+` (${fmt(np.length)})`,body,foot); npCount();
+  const f=$('mB').querySelector('input.pr'); if(f) f.focus();
+}
+function npAmt(inp){ const it=prep.noPrice[+inp.dataset.i], v=parseFloat(inp.value); $('npa'+inp.dataset.i).textContent=v>0?fmt(v*it.qty):''; npCount(); }
+function npCount(){ const ins=[...$('mB').querySelectorAll('input.pr')]; const e=ins.filter(i=>!(parseFloat(i.value)>0)).length; const el=$('npLeft'); if(el) el.textContent=e?`${e} ${T('صنف لسه من غير سعر')}`:T('كل الأصناف ليها سعر'); }
+function savePrices(){ $('mB').querySelectorAll('input.pr').forEach(i=>{ const it=prep.noPrice[+i.dataset.i], v=parseFloat(i.value); if(v>0) prices[it.key]=v; else delete prices[it.key]; }); renderPriceNote(); }
+
 // ---------- 5 ----------
-async function convert(){
+async function convert(skipCheck){
+  if(!skipCheck && npLeft().length){ showNoPrice(true); return; }
   err('err5'); $('saved').textContent='';
   const months=[...document.querySelectorAll('#months input:checked')].map(i=>i.value);
-  const body={months,codes:{}};
+  const body={months,codes:{},prices};
   const on=$('ndOn'); if(on&&on.checked) body.noDateDate=$('ndDate').value;
   // الأكواد اللي انت غيرتها بس — الباقي البرنامج بيكوّده لوحده
   groups.forEach(g=>{ if(g.edited) body.codes[g.key]={task:g.t||'',cost:g.c||''}; });
@@ -366,6 +439,8 @@ async function convert(){
       (j.byMonth||[]).map(m=>`<tr class="small"><td class="muted">${esc(m.label)}</td><td class="n">${fmt(m.rows)}</td><td class="n">${fmt(m.qty)}</td><td class="n">${fmt(m.amount)}</td></tr>`).join('');
     const notes=[];
     if(j.noRate) notes.push(`${fmt(j.noRate)} بند مالهمش سعر في الشيت — اتنقلوا بالكمية والقيمة زي ما هما.`);
+    if(j.priceMonth&&j.priceMonth.items) notes.push(`${fmt(j.priceMonth.items)} صنف من غير سعر خدوا سعر من أقرب شهر (قيمتهم ${fmt(j.priceMonth.amount)}) — في شيت «الأسعار» في ملف المراجعة.`);
+    if(j.priceUser&&j.priceUser.items) notes.push(`${fmt(j.priceUser.items)} صنف اتحطلهم السعر اللي كتبته (قيمتهم ${fmt(j.priceUser.amount)}).`);
     if(j.autoCoded) notes.push(`${fmt(j.autoCoded)} صنف اتكوّد تلقائي — تفاصيلهم في شيت «الأكواد» في ملف المراجعة.`);
     if(j.noTask) notes.push(`${fmt(j.noTask)} بند من غير Task Code.`);
     if(j.noCost) notes.push(`${fmt(j.noCost)} بند من غير Cost Code.`);
