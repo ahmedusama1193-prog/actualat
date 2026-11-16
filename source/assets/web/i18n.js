@@ -4,6 +4,7 @@
    أي عنصر عليه translate="no" (بيانات المستخدم: أسماء الأصناف والمقاولين والشيتات) مابيتترجمش. */
 (function(){
 const D={
+"بحث بالاسم أو الكود…":"Search by name or code…",
 // ---- 2.11: أعمدة كل الملفات + الفيلا
 "قوايم الأعمدة تحت فيها عناوين كل الملفات. اختيار الشيت وصف العناوين للملف الأول، والباقيين البرنامج بيلاقيهم لوحده.":"The column lists below include the headers of all files. The sheet and header-row choice applies to the first file; the others are found automatically.","مش موجود في:":"Missing in:","أعمدة مشتركة في كل الملفات":"Columns common to all files","أعمدة مش في كل الملفات":"Columns not in every file","العمود":"Column","موجود في":"Found in","مش موجود في":"Missing in","كل الملفات فيها نفس الأعمدة":"All files have the same columns","عمود التوجيه على الفيلا اتحط في الملاحظات لوحده:":"The villa allocation column was added to Remarks automatically:",
 // ---- 2.10: ربط Task ← Cost

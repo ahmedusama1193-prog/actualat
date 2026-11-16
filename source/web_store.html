@@ -4,17 +4,23 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=30">
-<link rel="stylesheet" href="/assets/theme.css?v=30">
-<script src="/assets/i18n.js?v=30"></script>
+<link rel="stylesheet" href="/assets/base.css?v=31">
+<link rel="stylesheet" href="/assets/theme.css?v=31">
+<script src="/assets/i18n.js?v=31"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 <style>
   .cpick{display:inline-flex;align-items:center;position:relative}
   .cpick input.code{padding-right:26px!important}
   .cbtn{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:22px;height:24px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0}
   .cbtn:hover{color:var(--ink)}
-  #pick{position:fixed;z-index:50;width:360px;max-height:340px;overflow:auto;background:var(--card,var(--bg));border:1px solid var(--line2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:4px 0}
-  #pick .ph{position:sticky;top:-4px;background:inherit;padding:7px 12px 6px;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line);font-weight:600}
+  #pick{position:fixed;z-index:50;width:380px;max-height:380px;display:flex;flex-direction:column;background:var(--card,var(--bg));border:1px solid var(--line2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);overflow:hidden}
+  #pick .phd{flex:none;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--card,var(--bg))}
+  #pick .ptl{font-size:11.5px;color:var(--muted);font-weight:600;margin:0 2px 7px}
+  #pick .psr{position:relative}
+  #pick .psr input{width:100%;box-sizing:border-box;height:34px;padding:0 32px 0 10px!important;font:inherit;font-size:13px}
+  #pick .psr svg{position:absolute;inset-inline-end:9px;top:50%;transform:translateY(-50%);width:16px;height:16px;color:var(--muted);pointer-events:none}
+  #pickList{flex:1;min-height:0;overflow:auto;padding:4px 0}
+  #pick .ph{padding:10px 12px 4px;font-size:11.5px;color:var(--muted);font-weight:600}
   #pick .po{display:flex;gap:10px;align-items:baseline;padding:7px 12px;cursor:pointer;font-size:13px}
   #pick .po b{direction:ltr;font-weight:600;min-width:74px;font-variant-numeric:tabular-nums}
   #pick .po span{color:var(--muted)}
@@ -100,7 +106,12 @@
   </div>
 
 </main>
-<div id="pick" class="hidden" onmousedown="event.preventDefault()"></div>
+<div id="pick" class="hidden" onmousedown="if(event.target.id!=='pickQ')event.preventDefault()">
+  <div class="phd"><div class="ptl" id="pickT"></div>
+    <div class="psr"><input id="pickQ" autocomplete="off" placeholder="بحث بالاسم أو الكود…" oninput="pk.act=-1;renderPick()" onkeydown="pickKey(event,pk.inp,true)" onblur="setTimeout(closePick,150)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/></svg></div></div>
+  <div id="pickList"></div>
+</div>
 <div id="busy" class="busy hidden">جاري الشغل…</div>
 <script>
 const $=id=>document.getElementById(id);
@@ -194,7 +205,7 @@ async function prepare(){
   const cols={}; document.querySelectorAll('#mapBody select').forEach(s=>cols[s.dataset.k]=parseInt(s.value));
   const remarks=[...document.querySelectorAll('#remChips .chip.on')].map(c=>parseInt(c.dataset.i));
   try{
-    prep=await api('/api/prepare',{headerRow:info.headerRow,cols,remarks});
+    prep=await api('/api/prepare',{headerRow:info.headerRow,cols,remarks}); SRCH=null;
     // months
     $('totalsNote').textContent=`${fmt(prep.rows)} صنف في الشيت · إجمالي القيمة ${fmt(prep.amount)}`;
     $('months').innerHTML=prep.months.map(m=>`<label class="m on"><input type="checkbox" value="${m.key}" checked onchange="this.parentNode.classList.toggle('on',this.checked)"><div><div class="l">${m.label}</div><div class="s">${fmt(m.rows)} بند · ${fmt(m.amount)}</div></div></label>`).join('');
@@ -272,11 +283,18 @@ function syncCost(i){
 // ---------- قايمة الأكواد (Task كلها · Cost المربوط بالـ Task بس) ----------
 let pk={inp:null,all:false,typed:false,act:-1,vals:[]};
 function openPick(inp){
-  if(pk.inp!==inp){ pk={inp,all:false,typed:false,act:-1,vals:[]}; }
+  if(pk.inp!==inp){ pk={inp,all:false,typed:false,act:-1,vals:[]}; $('pickQ').value=''; }
   renderPick(); placePick();
 }
-function pickFilter(inp){ if(pk.inp!==inp) pk={inp,all:false,typed:false,act:-1,vals:[]}; pk.typed=true; renderPick(); placePick(); }
-function closePick(){ const a=document.activeElement; if(a&&a.classList&&a.classList.contains('code')&&a===pk.inp) return; $('pick').classList.add('hidden'); pk.inp=null; }
+function pickFilter(inp){ if(pk.inp!==inp){ pk={inp,all:false,typed:false,act:-1,vals:[]}; $('pickQ').value=''; } pk.typed=true; renderPick(); placePick(); }
+function closePick(){ const a=document.activeElement; if(a&&(a===pk.inp||a.id==='pickQ')) return; $('pick').classList.add('hidden'); pk.inp=null; }
+// بحث عربي مرن: من غير تشكيل، أ/إ/آ = ا، ة = ه، ى = ي
+const nq=s=>String(s||'').toLowerCase().replace(/[\u064B-\u0652\u0640]/g,'').replace(/[أإآ]/g,'ا').replace(/ة/g,'ه').replace(/ى/g,'ي').replace(/\s+/g,' ').trim();
+let SRCH=null;
+function srchOf(k,c){
+  if(!SRCH){ SRCH={t:{},c:{}}; prep.codes.task.forEach(x=>SRCH.t[x.code]=nq([x.code,x.ar,x.en,x.wpName].join(' '))); prep.codes.cost.forEach(x=>SRCH.c[x.code]=nq([x.code,x.ar,x.en,x.wpName,x.type].join(' '))); }
+  return SRCH[k][c]||nq(c);
+}
 function placePick(){
   const el=$('pick'), r=pk.inp.getBoundingClientRect(); el.classList.remove('hidden');
   const w=el.offsetWidth, h=el.offsetHeight;
@@ -286,7 +304,8 @@ function placePick(){
 }
 function renderPick(){
   const inp=pk.inp, g=groups[+inp.dataset.i], k=inp.dataset.k, cur=inp.value.trim();
-  const q=pk.typed?cur.toLowerCase():'';
+  const sq=$('pickQ').value.trim();
+  const q=nq(sq||(pk.typed?cur:''));
   let list, head='', canAll=false;
   if(k==='t'){ list=prep.codes.task.map(c=>c.code); head=T('كل أكواد الـ Task'); }
   else{
@@ -295,17 +314,18 @@ function renderPick(){
     else { list=prep.codes.cost.map(c=>c.code); head=g.t&&!l.length?T('مفيش بنود مربوطة بالـ Task ده — كل أكواد الـ Cost'):T('كل أكواد الـ Cost'); }
   }
   const map=k==='t'?taskMap:costMap;
-  if(q) list=list.filter(c=>(c+' '+(map[c]||'')).toLowerCase().includes(q));
+  if(q){ const words=q.split(' '); list=list.filter(c=>{ const t=srchOf(k,c); return words.every(w=>t.includes(w)); }); }
   pk.vals=list; if(pk.act>=list.length) pk.act=list.length-1;
-  let html=`<div class="ph">${esc(head)}</div>`, lastWP=null;
+  $('pickT').textContent=head;
+  let html='', lastWP=null;
   list.forEach((c,j)=>{
-    if(k==='t' && !q && taskWP[c]!==lastWP){ lastWP=taskWP[c]; html+=`<div class="ph" style="position:static;border:none;padding-top:10px" translate="no">${esc(c.slice(0,5))} · ${esc(lastWP)}</div>`; }
+    if(k==='t' && !q && taskWP[c]!==lastWP){ lastWP=taskWP[c]; html+=`<div class="ph" translate="no">${esc(c.slice(0,5))} · ${esc(lastWP)}</div>`; }
     html+=`<div class="po${c===cur?' cur':''}${j===pk.act?' on':''}" data-j="${j}" onmousedown="choosePick(${j})"><b translate="no">${esc(c)}</b><span translate="no">${esc(map[c]||'')}</span></div>`;
   });
   if(!list.length) html+=`<div class="pe">${T('مفيش كود بالبحث ده')}</div>`;
   if(canAll) html+=`<button type="button" class="pall" onmousedown="pk.all=true;renderPick();placePick()">${T('عرض كل أكواد الـ Cost')}</button>`;
-  $('pick').innerHTML=html;
-  const a=$('pick').querySelector('.po.on')||(!pk.typed&&$('pick').querySelector('.po.cur')); if(a) a.scrollIntoView({block:'nearest'});
+  $('pickList').innerHTML=html;
+  const a=$('pickList').querySelector('.po.on')||(!q&&$('pickList').querySelector('.po.cur')); if(a) a.scrollIntoView({block:'nearest'}); else $('pickList').scrollTop=0;
 }
 function choosePick(j){
   const inp=pk.inp, v=pk.vals[j]; if(!inp||v==null) return;
@@ -313,13 +333,15 @@ function choosePick(j){
   $('pick').classList.add('hidden'); pk.inp=null;
   // بعد اختيار الـ Task افتح الـ Cost المربوط على طول
   if(inp.dataset.k==='t'){ const ci=document.querySelector(`#grpBody input[data-i="${inp.dataset.i}"][data-k="c"]`); if(ci){ ci.focus(); openPick(ci); } }
-  else inp.blur();
+  else { inp.blur(); const a=document.activeElement; if(a&&a.id==='pickQ') a.blur(); }
 }
-function pickKey(e,inp){
+function pickKey(e,inp,fromSearch){
+  if(!inp) return;
   if($('pick').classList.contains('hidden')||pk.inp!==inp){ if(e.key==='ArrowDown'){ openPick(inp); e.preventDefault(); } return; }
   if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); const n=pk.vals.length; if(!n) return; pk.act=(pk.act+(e.key==='ArrowDown'?1:-1)+n)%n; renderPick(); }
   else if(e.key==='Enter'){ e.preventDefault(); if(pk.act>=0) choosePick(pk.act); else if(pk.vals.length===1) choosePick(0); else { $('pick').classList.add('hidden'); } }
-  else if(e.key==='Escape'){ $('pick').classList.add('hidden'); }
+  else if(e.key==='Escape'){ $('pick').classList.add('hidden'); if(fromSearch) inp.focus(); }
+  else if(e.key==='Tab' && !fromSearch && !e.shiftKey){ e.preventDefault(); $('pickQ').focus(); }
 }
 addEventListener('scroll',()=>{ if(pk.inp) placePick(); },true);
 addEventListener('resize',()=>{ if(pk.inp) placePick(); });
