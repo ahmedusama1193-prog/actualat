@@ -4,6 +4,7 @@
    أي عنصر عليه translate="no" (بيانات المستخدم: أسماء الأصناف والمقاولين والشيتات) مابيتترجمش. */
 (function(){
 const D={
+"تصدير اللي من غير سعر بس":"Export unpriced only","تصدير الكل":"Export all","اللي من غير سعر بس":"Unpriced only","اتحفظ سعر":"Saved prices for","اتحفظ":"Saved","صنف:":"items:",
 "أو سعّرهم برّه:":"Or price them outside:","تصدير الأصناف لإكسيل":"Export items to Excel","ارفع الملف بعد التسعير":"Upload the priced file","اتحفظ:":"Saved:","اكتب الأسعار في عمود «سعر الوحدة» واحفظ، وبعدين ارفعه":"Fill the «Unit price» column, save, then upload it",
 "أسعار من ملف إكسيل؟":"Prices from an Excel file?","لا":"No","أيوه، استخدم ملف":"Yes, use a file","اختار ملف الأسعار…":"Choose price file…","بيقرا الملف…":"Reading the file…","لقى سعر":"found a price for","من":"of","من الملف":"from file",
 "بند من غير وحدة خدوا وحدة نفس الصنف من أقرب شهر":"rows without a unit took the same item's unit from the nearest month","صنف مالقيتلهمش وحدة":"items with no unit found",

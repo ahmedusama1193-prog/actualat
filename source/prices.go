@@ -707,9 +707,17 @@ var unitTok = map[string]bool{"mm": true, "cm": true, "m": true, "inch": true, "
 func hStoreNoPriceExport(w http.ResponseWriter, r *http.Request) {
 	var b struct {
 		Prices map[string]float64 `json:"prices"`
+		Only   bool               `json:"only"` // اللي لسه من غير سعر بس
 	}
 	json.NewDecoder(r.Body).Decode(&b)
-	if len(sst.noPrice) == 0 {
+	var list []*noPriceItem
+	for _, it := range sst.noPrice {
+		if b.Only && b.Prices[it.Key] > 0 {
+			continue
+		}
+		list = append(list, it)
+	}
+	if len(list) == 0 {
 		fail(w, fmt.Errorf("مفيش أصناف من غير سعر"))
 		return
 	}
@@ -735,7 +743,7 @@ func hStoreNoPriceExport(w http.ResponseWriter, r *http.Request) {
 	f.SetCellStyle(sh, "A1", "F1", hs)
 	f.SetCellStyle(sh, "G1", "H1", ph)
 	f.SetRowHeight(sh, 1, 30)
-	for i, it := range sst.noPrice {
+	for i, it := range list {
 		row := i + 2
 		set := func(col int, v interface{}) {
 			c, _ := excelize.CoordinatesToCellName(col, row)
@@ -764,13 +772,16 @@ func hStoreNoPriceExport(w http.ResponseWriter, r *http.Request) {
 		f.SetColWidth(sh, cn, cn, wd)
 	}
 	f.SetPanes(sh, &excelize.Panes{Freeze: true, YSplit: 1, TopLeftCell: "A2", ActivePane: "bottomLeft"})
-	f.AutoFilter(sh, fmt.Sprintf("A1:H%d", len(sst.noPrice)+1), nil)
+	f.AutoFilter(sh, fmt.Sprintf("A1:H%d", len(list)+1), nil)
 	buf, err := f.WriteToBuffer()
 	if err != nil {
 		fail(w, err)
 		return
 	}
 	name := "أصناف_من_غير_سعر"
+	if !b.Only {
+		name = "أصناف_الأسعار_الناقصة_كلها"
+	}
 	p, err := saveDialog(name + ".xlsx")
 	if err != nil {
 		fail(w, err)
@@ -785,5 +796,5 @@ func hStoreNoPriceExport(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	setSetting("lastDir", filepath.Dir(p))
-	writeJSON(w, 200, map[string]interface{}{"path": p, "items": len(sst.noPrice)})
+	writeJSON(w, 200, map[string]interface{}{"path": p, "items": len(list)})
 }

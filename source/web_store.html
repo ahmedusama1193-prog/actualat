@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=36">
-<link rel="stylesheet" href="/assets/theme.css?v=36">
-<script src="/assets/i18n.js?v=36"></script>
+<link rel="stylesheet" href="/assets/base.css?v=37">
+<link rel="stylesheet" href="/assets/theme.css?v=37">
+<script src="/assets/i18n.js?v=37"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 <style>
   .cpick{display:inline-flex;align-items:center;position:relative}
@@ -415,17 +415,19 @@ function showNoPrice(forConvert){
       <input id="pfIn" type="file" accept=".xlsx,.xlsm" class="hidden" onchange="pfLoad(this)">
       <span style="flex-basis:100%;height:0"></span>
       <span class="muted small">${T('أو سعّرهم برّه:')}</span>
-      <button class="btn sec" onclick="npExport()">⬇ ${T('تصدير الأصناف لإكسيل')}</button>
+      <button class="btn sec" onclick="npExport(true)">⬇ ${T('تصدير اللي من غير سعر بس')}</button>
+      <button class="btn sec" onclick="npExport(false)">⬇ ${T('تصدير الكل')}</button>
       <button class="btn sec" onclick="document.querySelector('input[name=pfUse][value=yes]').checked=true;pfToggle(true);$('pfIn').click()">⬆ ${T('ارفع الملف بعد التسعير')}</button>
       <span id="npxMsg" class="small"></span>
     </div>`+`<div class="muted small" style="margin-bottom:10px">${T('الأصناف دي مالهاش سعر في الشيت ولا في أي شهر تاني. اكتب سعر الوحدة لكل صنف. اللي هتسيبه فاضي هيتشال من ملف PCS (التكلفة صفر). السعر بيتحفظ ويظهرلك المرة الجاية كاقتراح.')}</div>`+
-    `<table><thead><tr><th>${T('كود الصنف')}</th><th>${T('الصنف')}</th><th>${T('الوحدة')}</th><th>${T('عدد البنود')}</th><th>${T('الكمية')}</th><th>${T('الشهور')}</th><th>${T('سعر الوحدة')}</th><th>${T('القيمة')}</th></tr></thead><tbody>`+
+    `<div class="pnote" style="margin-bottom:8px"><span class="chip on" id="npAll" onclick="npFilter(false)">${T('الكل')}</span><span class="chip" id="npOnly" onclick="npFilter(true)">${T('اللي من غير سعر بس')}</span><span id="npSaved" class="small"></span></div>`+
+    `<table id="npTbl"><thead><tr><th>${T('كود الصنف')}</th><th>${T('الصنف')}</th><th>${T('الوحدة')}</th><th>${T('عدد البنود')}</th><th>${T('الكمية')}</th><th>${T('الشهور')}</th><th>${T('سعر الوحدة')}</th><th>${T('القيمة')}</th></tr></thead><tbody>`+
     np.map((it,i)=>{ const v=prices[it.key]>0?prices[it.key]:(it.saved||'');
-      return `<tr><td class="n" translate="no">${esc(it.code)}</td><td translate="no">${esc(it.name)}</td><td translate="no">${esc(it.unit)}</td><td class="n">${fmt(it.rows)}</td><td class="n">${fmt(it.qty)}</td><td class="small">${esc((it.months||[]).join('، '))}</td>
+      return `<tr data-i="${i}"><td class="n" translate="no">${esc(it.code)}</td><td translate="no">${esc(it.name)}</td><td translate="no">${esc(it.unit)}</td><td class="n">${fmt(it.rows)}</td><td class="n">${fmt(it.qty)}</td><td class="small">${esc((it.months||[]).join('، '))}</td>
         <td><input class="pr" type="number" min="0" step="any" data-i="${i}" value="${v}" oninput="npAmt(this);const t=this.parentNode.querySelector('.ftag');if(t)t.remove()">${it.saved&&!(prices[it.key]>0)?`<div class="muted small">${T('آخر سعر دخلته')}</div>`:''}</td><td class="n" id="npa${i}">${v?fmt(v*it.qty):''}</td></tr>`; }).join('')+'</tbody></table>';
   const foot=`<span class="muted small grow" id="npLeft"></span><button class="btn sec" onclick="closeModal()">${T('إلغاء')}</button>`+
     (forConvert?`<button class="btn sec" onclick="savePrices();closeModal();convert(true)">${T('حوّل من غير الناقص')}</button><button class="btn" onclick="savePrices();closeModal();convert(true)">${T('حفظ وتحويل')}</button>`
-               :`<button class="btn" onclick="savePrices();closeModal()">${T('حفظ الأسعار')}</button>`);
+               :`<button class="btn" onclick="npSave()">${T('حفظ الأسعار')}</button>`);
   openModal(T('أصناف من غير سعر')+` (${fmt(np.length)})`,body,foot); npCount();
   const f=$('mB').querySelector('input.pr'); if(f) f.focus();
 }
@@ -444,12 +446,26 @@ async function pfLoad(inp){
     $('pfMsg').style.color=n?'var(--ok)':'var(--warn)';
   }catch(e){ $('pfMsg').textContent=e.message; $('pfMsg').style.color='var(--bad)'; }
 }
-async function npExport(){
+let npOnlyOn=false;
+function npFilter(only){
+  npOnlyOn=only; $('npAll').classList.toggle('on',!only); $('npOnly').classList.toggle('on',only);
+  $('mB').querySelectorAll('#npTbl tbody tr').forEach(tr=>{ const i=tr.querySelector('input.pr'); tr.style.display=(only && parseFloat(i.value)>0)?'none':''; });
+}
+// حفظ: الشاشة بتفضل مفتوحة لو لسه فيه أصناف من غير سعر، وبتقولك عددهم
+function npSave(){
+  savePrices();
+  const left=npLeft().length, done=(prep.noPrice||[]).length-left;
+  if(!left){ closeModal(); return; }
+  $('npSaved').innerHTML=`<i class="ic ok"></i>${T('اتحفظ سعر')} <b>${fmt(done)}</b> ${T('صنف')} — <b style="color:var(--warn)">${fmt(left)}</b> ${T('صنف لسه من غير سعر')}`;
+  $('npSaved').style.color='var(--ok)';
+  npFilter(true);
+}
+async function npExport(only){
   // الأسعار اللي كتبتها في الشاشة بتطلع في الملف كمان
   const cur={}; $('mB').querySelectorAll('input.pr').forEach(i=>{ const v=parseFloat(i.value); if(v>0) cur[prep.noPrice[+i.dataset.i].key]=v; });
   $('npxMsg').textContent=''; 
-  try{ const j=await api('/api/store/no-price-export',{prices:cur});
-    if(j.path){ $('npxMsg').innerHTML=`<i class="ic ok"></i>${T('اتحفظ:')} <span translate="no">${esc(j.path)}</span> — ${T('اكتب الأسعار في عمود «سعر الوحدة» واحفظ، وبعدين ارفعه')}`; $('npxMsg').style.color='var(--ok)'; } }
+  try{ const j=await api('/api/store/no-price-export',{prices:cur,only});
+    if(j.path){ $('npxMsg').innerHTML=`<i class="ic ok"></i>${T('اتحفظ')} ${fmt(j.items)} ${T('صنف:')} <span translate="no">${esc(j.path)}</span> — ${T('اكتب الأسعار في عمود «سعر الوحدة» واحفظ، وبعدين ارفعه')}`; $('npxMsg').style.color='var(--ok)'; } }
   catch(e){ $('npxMsg').textContent=e.message; $('npxMsg').style.color='var(--bad)'; }
 }
 function npAmt(inp){ const it=prep.noPrice[+inp.dataset.i], v=parseFloat(inp.value); $('npa'+inp.dataset.i).textContent=v>0?fmt(v*it.qty):''; npCount(); }
