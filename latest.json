@@ -1,6 +1,6 @@
 {
-  "version": "2.10",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/3c21d82dab565d52989cb2c111f819a20026ddfb/Actualat.exe",
-  "sha256": "2d176e9ca68ea76c2608f7f78b64bc1b28d4993a1e87cd48f3ac1eb6108180b6",
-  "notes": "شاشة البداية إجبارية (الأخضر تلت) · المستودعات: Task و Cost مربوطين"
+  "version": "2.11",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/59565dd4438b3f52ca176a4cee17e89dc6fc0d06/Actualat.exe",
+  "sha256": "c0132f1b9a38ec5e82c02f9007c7181ed6562b296adbca514e8f57058a6e8b10",
+  "notes": "المستودعات: أعمدة كل الملفات + المشترك والمختلف · التوجيه على الفيلا في الملاحظات"
 }
