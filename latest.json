@@ -1,6 +1,6 @@
 {
-  "version": "2.18",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/72d915bb800dd371dcd031809e70a83baa39bfee/Actualat.exe",
-  "sha256": "4d9f1aee77e4a196522752567377cbb771a01f41a45e62138d3b16ae9fb86433",
-  "notes": "ملف الأسعار بيطابق باسم الصنف"
+  "version": "2.19",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/1cafdc4a3bb76e3c57018b8010bd163da50f6b9b/Actualat.exe",
+  "sha256": "886fb69bdc458fed5b43dc0fff856d8b9f713d4adf4e32103cc48adbbc1ffa48",
+  "notes": "أسعار الأصناف الناقصة من كل الشهور ومن أصناف اسمها قريب"
 }
