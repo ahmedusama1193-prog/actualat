@@ -1,6 +1,6 @@
 {
-  "version": "2.17",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/e6da440a968f2c42ed6537675b4284789309c97d/Actualat.exe",
-  "sha256": "b5540fe6022ff58cf18bbef078690ccb3de6b7db241d8ab63a6d11a3d49421c0",
-  "notes": "ملف الأسعار بيتقرا بأي شكل عناوين"
+  "version": "2.18",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/72d915bb800dd371dcd031809e70a83baa39bfee/Actualat.exe",
+  "sha256": "4d9f1aee77e4a196522752567377cbb771a01f41a45e62138d3b16ae9fb86433",
+  "notes": "ملف الأسعار بيطابق باسم الصنف"
 }
