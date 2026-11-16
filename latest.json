@@ -1,6 +1,6 @@
 {
-  "version": "2.21",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/34fba013ac7bc394928af472cbbee12ee791d001/Actualat.exe",
-  "sha256": "04d8301a6d4da6609829a9ded52009c2b88a12cecdc6dcbfccc529d56c26bc37",
-  "notes": "تصدير الأصناف اللي من غير سعر لإكسيل ورفعها بعد التسعير"
+  "version": "2.22",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/83e735c80073a3c83bc2dff00bb7f4c8b1657016/Actualat.exe",
+  "sha256": "1459ca25072f92fc181d51f2083b2604ced5f3150d1b88909727977a7c8f8c42",
+  "notes": "الأسعار الناقصة: عدد الباقي بعد الحفظ، فلتر اللي من غير سعر، تصدير الكل أو الناقص بس"
 }
