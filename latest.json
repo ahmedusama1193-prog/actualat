@@ -1,6 +1,6 @@
 {
-  "version": "2.9",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/272f319d21161094f236969f381573e1a71ad2fc/Actualat.exe",
-  "sha256": "260a35e53b249a96896739efcea1ce1418f45a711e7c1c56158c1671cd3647f5",
-  "notes": "اللوجو بيرجّعك للرئيسية · المستودعات: رفع كذا شيت مع بعض"
+  "version": "2.10",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/3c21d82dab565d52989cb2c111f819a20026ddfb/Actualat.exe",
+  "sha256": "2d176e9ca68ea76c2608f7f78b64bc1b28d4993a1e87cd48f3ac1eb6108180b6",
+  "notes": "شاشة البداية إجبارية (الأخضر تلت) · المستودعات: Task و Cost مربوطين"
 }
