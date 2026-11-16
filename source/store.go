@@ -228,6 +228,8 @@ type storeState struct {
 	rowSrc    []int    // لكل صف في rows: رقم الملف (0 = الأول)
 	rowNo     []int    // لكل صف في rows: رقم الصف في ملفه
 	merged    []sMerged
+	nPrim     int     // عدد أعمدة الملف الأول (الباقي أعمدة جاية من ملفات تانية)
+	colFiles  [][]int // لكل عمود: أرقام الملفات اللي فيها العمود ده
 	sheets    []string
 	sheet     string
 	rows      [][]string
@@ -326,13 +328,35 @@ func autoMap(h []string) sMapping {
 
 func sheetInfo(w http.ResponseWriter, fromProfile bool) {
 	type hdr struct {
-		Index int    `json:"index"`
-		Name  string `json:"name"`
+		Index  int      `json:"index"`
+		Name   string   `json:"name"`
+		Files  []int    `json:"files,omitempty"`
+		Sample []string `json:"sample,omitempty"`
+		Villa  bool     `json:"villa,omitempty"`
 	}
 	var hs []hdr
 	for j, h := range sst.headers {
 		if strings.TrimSpace(h) != "" {
-			hs = append(hs, hdr{j, strings.TrimSpace(h)})
+			x := hdr{Index: j, Name: strings.TrimSpace(h), Villa: isVillaCol(h)}
+			if j < len(sst.colFiles) {
+				x.Files = sst.colFiles[j]
+			}
+			// أول قيمتين من أي ملف
+			for i := sst.hdr + 1; i < len(sst.rows) && len(x.Sample) < 2; i++ {
+				if r := sst.rows[i]; j < len(r) && strings.TrimSpace(r[j]) != "" {
+					x.Sample = append(x.Sample, strings.TrimSpace(r[j]))
+				}
+			}
+			hs = append(hs, x)
+			if x.Villa {
+				has := false
+				for _, r := range sst.mapping.Remarks {
+					has = has || r == j
+				}
+				if !has {
+					sst.mapping.Remarks = append(sst.mapping.Remarks, j)
+				}
+			}
 		}
 	}
 	var preview [][]string
@@ -395,7 +419,7 @@ func (s *storeState) loadSheet(sheet string, hdrRow int) (bool, error) {
 	if hdrRow < 0 || hdrRow >= len(rows) {
 		hdrRow = detectHeader(rows)
 	}
-	s.hdr, s.headers = hdrRow, rows[hdrRow]
+	s.hdr, s.headers = hdrRow, append([]string(nil), rows[hdrRow]...)
 	// قوائم الأكواد من الملف نفسه لو موجودة
 	s.cl, s.clSrc = loadCodeLists()
 	var tRows, cRows [][]string
@@ -422,7 +446,19 @@ func (s *storeState) loadSheet(sheet string, hdrRow int) (bool, error) {
 	p, ok := smem.Profiles[sig]
 	smem.mu.Unlock()
 	if ok {
-		s.mapping = p
+		s.mapping = sMapping{Cols: map[string]int{}}
+		am := autoMap(s.headers)
+		for k, j := range p.Cols {
+			if j >= len(s.headers) {
+				j = am.Cols[k]
+			}
+			s.mapping.Cols[k] = j
+		}
+		for _, j := range p.Remarks {
+			if j < len(s.headers) {
+				s.mapping.Remarks = append(s.mapping.Remarks, j)
+			}
+		}
 	} else {
 		s.mapping = autoMap(s.headers)
 	}
@@ -433,6 +469,13 @@ func (s *storeState) loadSheet(sheet string, hdrRow int) (bool, error) {
 }
 
 func (s *storeState) mergeExtras() error {
+	s.nPrim = len(s.headers)
+	s.colFiles = make([][]int, len(s.headers))
+	for j, h := range s.headers {
+		if strings.TrimSpace(h) != "" {
+			s.colFiles[j] = []int{0}
+		}
+	}
 	s.rowSrc, s.rowNo = make([]int, len(s.rows)), make([]int, len(s.rows))
 	for i := range s.rows {
 		s.rowNo[i] = i + 1
@@ -452,14 +495,15 @@ func (s *storeState) mergeExtras() error {
 	return nil
 }
 
-// mergeFile: يقرا ملف زيادة ويحط صفوفه تحت صفوف الملف الأول بنفس ترتيب أعمدته (بالاسم، أو بنوع العمود لو الاسم مختلف)
+// mergeFile: يقرا ملف زيادة ويحط صفوفه تحت صفوف الملف الأول.
+// الأعمدة = اتحاد عناوين كل الملفات: نفس الاسم ← نفس العمود، اسم مختلف لنفس النوع (التاريخ/الكمية…) ← نفس العمود،
+// وأي عمود جديد بيتضاف في الآخر — فتقدر تختار من أعمدة أي ملف.
 func (s *storeState) mergeFile(ef sFile, idx int) (int, string, error) {
 	f, err := excelize.OpenReader(bytes.NewReader(ef.data))
 	if err != nil {
 		return 0, "", fmt.Errorf("مش قادر أفتح الملف %s: %v", ef.name, err)
 	}
 	defer f.Close()
-	// نفس اسم شيت الملف الأول لو موجود وشكله شيت مخازن، وإلا أقرب شيت
 	var rows [][]string
 	sheet, bs := "", -1
 	for _, sh := range f.GetSheetList() {
@@ -480,52 +524,68 @@ func (s *storeState) mergeFile(ef sFile, idx int) (int, string, error) {
 	}
 	h := detectHeader(rows)
 	eh := rows[h]
-	// عمود الملف الأول j ← عمود الملف ده
-	colOf := make([]int, len(s.headers))
 	byName := map[string]int{}
-	for j, x := range eh {
+	for j, x := range s.headers {
 		if n := normH(x); n != "" {
 			if _, ok := byName[n]; !ok {
 				byName[n] = j
 			}
 		}
 	}
-	pm, em := autoMap(s.headers), autoMap(eh)
-	fieldOf := map[int]string{}
-	for k, j := range pm.Cols {
-		if j >= 0 {
-			fieldOf[j] = k
+	um := autoMap(s.headers)
+	em := autoMap(eh)
+	fieldOfE := map[int]string{}
+	for k, c := range em.Cols {
+		if c >= 0 {
+			fieldOfE[c] = k
 		}
 	}
-	for j, x := range s.headers {
-		colOf[j] = -1
-		if n := normH(x); n != "" {
-			if c, ok := byName[n]; ok {
-				colOf[j] = c
-				continue
+	colOf := make([]int, len(eh)) // عمود الملف ده c ← عمود موحّد
+	used := map[int]bool{}
+	for c, x := range eh {
+		colOf[c] = -1
+		n := normH(x)
+		if n == "" {
+			continue
+		}
+		if j, ok := byName[n]; ok && !used[j] {
+			colOf[c] = j
+			used[j] = true
+		}
+	}
+	for c, x := range eh {
+		if colOf[c] >= 0 || normH(x) == "" {
+			continue
+		}
+		j := -1
+		if k, ok := fieldOfE[c]; ok {
+			if uj := s.mapping.Cols[k]; uj >= 0 && !used[uj] {
+				j = uj
+			} else if uj := um.Cols[k]; uj >= 0 && !used[uj] {
+				j = uj
 			}
 		}
-		if k, ok := fieldOf[j]; ok && em.Cols[k] >= 0 {
-			colOf[j] = em.Cols[k]
+		if j < 0 { // عمود جديد
+			s.headers = append(s.headers, strings.TrimSpace(x))
+			s.colFiles = append(s.colFiles, nil)
+			j = len(s.headers) - 1
+			byName[normH(x)] = j
 		}
+		colOf[c] = j
+		used[j] = true
 	}
-	// لازم أعمدة الربط الأساسية تبقى موجودة في الملف ده
-	var miss []string
-	for _, fl := range storeFields {
-		if j := s.mapping.Cols[fl.Key]; fl.Required && j >= 0 && j < len(colOf) && colOf[j] < 0 {
-			miss = append(miss, strings.TrimSpace(s.headers[j]))
+	for c, j := range colOf {
+		if j >= 0 && strings.TrimSpace(eh[c]) != "" {
+			s.colFiles[j] = append(s.colFiles[j], idx)
 		}
-	}
-	if len(miss) > 0 {
-		return 0, "", fmt.Errorf("الملف %s شكله مختلف عن الملف الأول — مالقيتش فيه: %s. ارفعه لوحده", ef.name, strings.Join(miss, "، "))
 	}
 	n := 0
 	for i := h + 1; i < len(rows); i++ {
 		r := rows[i]
 		nr := make([]string, len(s.headers))
 		empty := true
-		for j, c := range colOf {
-			if c >= 0 && c < len(r) {
+		for c, j := range colOf {
+			if j >= 0 && c < len(r) {
 				nr[j] = r[c]
 				if strings.TrimSpace(r[c]) != "" {
 					empty = false
@@ -838,7 +898,7 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 	}
 	sst.mapping = sMapping{Cols: b.Cols, Remarks: b.Remarks}
 	smem.mu.Lock()
-	smem.Profiles[storeSignature(sst.headers)] = sst.mapping
+	smem.Profiles[storeSignature(sst.headers[:sst.primN()])] = sst.mapping
 	smem.mu.Unlock()
 	saveStoreMem()
 	sst.parse()
@@ -1087,7 +1147,11 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		var rem []string
 		for _, j := range sst.mapping.Remarks {
 			if j < len(x.Cells) && strings.TrimSpace(x.Cells[j]) != "" {
-				rem = append(rem, strings.TrimSpace(x.Cells[j]))
+				v := strings.TrimSpace(x.Cells[j])
+				if j < len(sst.headers) && isVillaCol(sst.headers[j]) {
+					v = strings.TrimSpace(sst.headers[j]) + ": " + v
+				}
+				rem = append(rem, v)
 			}
 		}
 		outs = append(outs, sOut{x, d, task, cost, strings.Join(rem, " | ")})
@@ -1308,6 +1372,19 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 		"autoCoded": len(codeOrder),
 		"previous":  samePeriod("store", tag, reqUser(r)),
 	})
+}
+
+func (s *storeState) primN() int {
+	if s.nPrim > 0 && s.nPrim <= len(s.headers) {
+		return s.nPrim
+	}
+	return len(s.headers)
+}
+
+// عمود التوجيه على الفيلا (لو موجود) بيتكتب في الملاحظات لوحده
+func isVillaCol(h string) bool {
+	n := normH(h)
+	return strings.Contains(n, "فيلا") || strings.Contains(n, "فيله") || strings.Contains(n, "توجيه") || strings.Contains(n, "villa")
 }
 
 func (s *storeState) srcName() string {

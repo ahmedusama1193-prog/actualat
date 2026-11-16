@@ -4,6 +4,8 @@
    أي عنصر عليه translate="no" (بيانات المستخدم: أسماء الأصناف والمقاولين والشيتات) مابيتترجمش. */
 (function(){
 const D={
+// ---- 2.11: أعمدة كل الملفات + الفيلا
+"قوايم الأعمدة تحت فيها عناوين كل الملفات. اختيار الشيت وصف العناوين للملف الأول، والباقيين البرنامج بيلاقيهم لوحده.":"The column lists below include the headers of all files. The sheet and header-row choice applies to the first file; the others are found automatically.","مش موجود في:":"Missing in:","أعمدة مشتركة في كل الملفات":"Columns common to all files","أعمدة مش في كل الملفات":"Columns not in every file","العمود":"Column","موجود في":"Found in","مش موجود في":"Missing in","كل الملفات فيها نفس الأعمدة":"All files have the same columns","عمود التوجيه على الفيلا اتحط في الملاحظات لوحده:":"The villa allocation column was added to Remarks automatically:",
 // ---- 2.10: ربط Task ← Cost
 "كل أكواد الـ Task":"All Task codes","البنود المربوطة بـ":"Linked to","مفيش بنود مربوطة بالـ Task ده — كل أكواد الـ Cost":"No items linked to this Task — all Cost codes","كل أكواد الـ Cost":"All Cost codes","مفيش كود بالبحث ده":"No code matches","عرض كل أكواد الـ Cost":"Show all Cost codes",
 // ---- 2.9: كذا ملف مخازن مع بعض + اللوجو
@@ -77,7 +79,7 @@ const D={
 "اختار شيت المخازن":"Choose the store sheet","اسحب الملف هنا أو":"Drag the file here or","اضغط للاختيار":"click to choose","xlsx / xlsm — أي شكل لشيت المخازن":"xlsx / xlsm — any store sheet layout",
 "الشيت:":"Sheet:","الشيت":"Sheet","صف العناوين:":"Header row:","صف العناوين":"Header row","ربط الأعمدة":"Map columns","عمود PCS":"PCS column","العمود في شيت المخازن":"Column in the store sheet",
 "مثال من أول صف":"Sample from first rows","اختار الأعمدة اللي تتكتب في الملاحظات (اختياري)":"pick the columns written into Remarks (optional)",
-"— اختار الأعمدة اللي تتكتب في الملاحظات (اختياري)":"— pick the columns written into Remarks (optional)","التالي":"Next","الشهور":"Months","اختار الكل":"Select all","إلغاء الكل":"Clear all",
+"— اختار الأعمدة اللي تتكتب في الملاحظات (اختياري)":"— pick the columns written into Remarks (optional)","— اختار الأعمدة اللي تتكتب في الملاحظات (اختياري) · (2/3) = العمود موجود في ملفين من 3":"— pick the columns written into Remarks (optional) · (2/3) = column found in 2 of 3 files","التالي":"Next","الشهور":"Months","اختار الكل":"Select all","إلغاء الكل":"Clear all",
 "Task Code و Cost Code":"Task Code & Cost Code","محتاج مراجعة":"Needs review","بحث بالصنف أو الكود…":"Search by material or code…","كود الصنف":"Item code","القسم":"Section",
 "الأكواد اللي بتختارها البرنامج بيفتكرها، والمرة الجاية نفس الصنف بياخد نفس الكود لوحده.":"The app remembers the codes you choose; next time the same material gets the same code automatically.",
 "تحويل":"Convert","حفظ ملف PCS… (اختار المكان)":"Save PCS file… (choose location)","✔ البرنامج عارف شكل الشيت ده من قبل وربط الأعمدة لوحده. راجعها ودوس التالي.":"✔ The app knows this sheet layout and mapped the columns itself. Review and click Next.",

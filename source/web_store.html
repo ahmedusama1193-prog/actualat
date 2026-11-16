@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=27">
-<link rel="stylesheet" href="/assets/theme.css?v=27">
-<script src="/assets/i18n.js?v=27"></script>
+<link rel="stylesheet" href="/assets/base.css?v=28">
+<link rel="stylesheet" href="/assets/theme.css?v=28">
+<script src="/assets/i18n.js?v=28"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 <style>
   .cpick{display:inline-flex;align-items:center;position:relative}
@@ -48,8 +48,9 @@
     <div class="step"><span class="num">02</span> ربط الأعمدة</div>
     <div id="profileNote" class="small" style="margin:-4px 0 10px"></div>
     <table class="map"><thead><tr><th>عمود PCS</th><th>العمود في شيت المخازن</th><th>مثال من أول صف</th></tr></thead><tbody id="mapBody"></tbody></table>
-    <div style="margin-top:14px"><b>Remarks</b> <span class="muted small">— اختار الأعمدة اللي تتكتب في الملاحظات (اختياري)</span></div>
+    <div style="margin-top:14px"><b>Remarks</b> <span class="muted small">— اختار الأعمدة اللي تتكتب في الملاحظات (اختياري) · (2/3) = العمود موجود في ملفين من 3</span></div>
     <div id="remChips" translate="no" class="chips" style="margin-top:8px"></div>
+    <div id="villaNote" class="small ok" style="margin-top:6px"></div>
     <div class="row" style="margin-top:16px"><button class="btn" onclick="prepare()">التالي</button></div>
     <div id="err2" class="err"></div>
   </div>
@@ -143,26 +144,48 @@ function showInfo(j){
   if(many && j.merged){
     $('filesNote').innerHTML=`<b>${T('الملفات اللي اتجمعت')} (${j.merged.length})</b><table style="max-width:720px;margin-top:6px"><tr><th>${T('الملف')}</th><th>${T('الشيت')}</th><th>${T('عدد الصفوف')}</th></tr>`+
       j.merged.map(m=>`<tr><td translate="no">${esc(m.file)}</td><td translate="no">${esc(m.sheet)}</td><td class="n">${fmt(m.rows)}</td></tr>`).join('')+'</table>'+
-      `<div class="muted" style="margin-top:6px">${T('الأعمدة بتتربط بأسماء عناوين الملف الأول. اختيار الشيت وصف العناوين تحت للملف الأول، والباقيين البرنامج بيلاقيهم لوحده.')}</div>`;
+      colsReport(j)+
+      `<div class="muted" style="margin-top:6px">${T('قوايم الأعمدة تحت فيها عناوين كل الملفات. اختيار الشيت وصف العناوين للملف الأول، والباقيين البرنامج بيلاقيهم لوحده.')}</div>`;
     show('filesNote');
   } else hide('filesNote');
   $('sheetSel').innerHTML=j.sheets.map(s=>`<option ${s===j.sheet?'selected':''}>${esc(s)}</option>`).join('');
   $('hdrRow').value=j.headerRow+1;
   show('fileRow');
+  const vill=j.headers.filter(h=>h.villa);
+  $('villaNote').innerHTML = vill.length ? `<i class="ic ok"></i>${T('عمود التوجيه على الفيلا اتحط في الملاحظات لوحده:')} <b translate="no">${esc(vill.map(h=>h.name).join('، '))}</b>` : '';
   $('profileNote').innerHTML = j.fromProfile ? '<span class="ok"><i class="ic ok"></i>البرنامج عارف شكل الشيت ده من قبل وربط الأعمدة لوحده. راجعها ودوس التالي.</span>'
     : '<span class="muted">البرنامج ربط الأعمدة اللي عرفها من أسمائها. اختار الباقي من القوايم. (هيفتكر الربط ده المرة الجاية)</span>';
-  const opts=['<option value="-1">— مش موجود —</option>'].concat(j.headers.map(h=>`<option value="${h.index}" translate="no">${esc(h.name)}</option>`)).join('');
+  const nf=(j.files||[]).length, part=h=>nf>1&&h.files&&h.files.length<nf;
+  const opts=['<option value="-1">— مش موجود —</option>'].concat(j.headers.map(h=>`<option value="${h.index}" translate="no">${esc(h.name)}${part(h)?'  ('+h.files.length+'/'+nf+')':''}</option>`)).join('');
   $('mapBody').innerHTML=j.fields.map(f=>`<tr><td>${esc(f.label)} ${f.required?'<span class="req">*</span>':''}${f.hint?`<div class="muted small" style="font-weight:400">${esc(f.hint)}</div>`:''}</td>
      <td><select data-k="${f.key}" onchange="sampleOf(this)">${opts}</select></td><td class="sample" translate="no" id="smp_${f.key}"></td></tr>`).join('');
   document.querySelectorAll('#mapBody select').forEach(s=>{ s.value=String(j.mapping.cols[s.dataset.k]??-1); sampleOf(s); });
   const rem=new Set(j.mapping.remarks||[]);
-  $('remChips').innerHTML=j.headers.map(h=>`<span class="chip ${rem.has(h.index)?'on':''}" data-i="${h.index}" onclick="this.classList.toggle('on')">${esc(h.name)}</span>`).join('');
+  $('remChips').innerHTML=j.headers.map(h=>`<span class="chip ${rem.has(h.index)?'on':''}" data-i="${h.index}" onclick="this.classList.toggle('on')" title="${h.villa?'التوجيه على الفيلا — بيتكتب في الملاحظات':''}">${h.villa?'🏠 ':''}${esc(h.name)}${part(h)?' ('+h.files.length+'/'+nf+')':''}</span>`).join('');
   show('s2');
 }
 function sampleOf(sel){
-  const i=parseInt(sel.value); const pos=info.headers.findIndex(h=>h.index===i);
-  const vals=pos<0?[]:info.preview.map(r=>r[pos]).filter(v=>v!=='').slice(0,2);
-  $('smp_'+sel.dataset.k).textContent=vals.join('  ·  ');
+  const i=parseInt(sel.value); const h=info.headers.find(h=>h.index===i);
+  const many=(info.files||[]).length>1;
+  let txt=esc((h&&h.sample||[]).join('  ·  '));
+  if(h && many && h.files && h.files.length<info.files.length){
+    const miss=info.files.filter((f,k)=>!h.files.includes(k));
+    txt+=`<div style="color:var(--warn);font-size:12px">${T('مش موجود في:')} <span translate="no">${esc(miss.join('، '))}</span></div>`;
+  }
+  $('smp_'+sel.dataset.k).innerHTML=txt;
+}
+// الأعمدة المشتركة في كل الملفات + الأعمدة اللي في بعضهم بس
+function colsReport(j){
+  const n=j.files.length, common=[], diff=[];
+  j.headers.forEach(h=>{ const f=h.files||[]; if(f.length>=n) common.push(h); else diff.push(h); });
+  let html=`<div style="margin-top:12px"><b>${T('أعمدة مشتركة في كل الملفات')} (${common.length})</b></div><div class="chips" style="margin-top:6px" translate="no">`+
+    common.map(h=>`<span class="chip" style="cursor:default">${esc(h.name)}</span>`).join('')+'</div>';
+  if(diff.length){
+    html+=`<div style="margin-top:12px"><b style="color:var(--warn)">${T('أعمدة مش في كل الملفات')} (${diff.length})</b></div>`+
+      `<table style="max-width:720px;margin-top:6px"><tr><th>${T('العمود')}</th><th>${T('موجود في')}</th><th>${T('مش موجود في')}</th></tr>`+
+      diff.map(h=>{ const f=h.files||[]; return `<tr><td translate="no"><b>${esc(h.name)}</b></td><td translate="no">${esc(f.map(k=>j.files[k]).join('، '))}</td><td translate="no" class="muted">${esc(j.files.filter((x,k)=>!f.includes(k)).join('، '))}</td></tr>`; }).join('')+'</table>';
+  } else html+=`<div class="ok small" style="margin-top:8px"><i class="ic ok"></i>${T('كل الملفات فيها نفس الأعمدة')}</div>`;
+  return html;
 }
 
 // ---------- 2 -> 3/4 ----------
