@@ -239,6 +239,7 @@ type storeState struct {
 	merged    []sMerged
 	nPrim     int     // عدد أعمدة الملف الأول (الباقي أعمدة جاية من ملفات تانية)
 	colFiles  [][]int // لكل عمود: أرقام الملفات اللي فيها العمود ده
+	noPrice   []*noPriceItem
 	sheets    []string
 	sheet     string
 	rows      [][]string
@@ -913,6 +914,7 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 	sst.parse()
 	unitFill := sst.fillUnits()
 	noPrice := sst.fillPrices()
+	sst.noPrice = noPrice
 
 	type mInfo struct {
 		Key    string  `json:"key"`
@@ -1465,5 +1467,6 @@ func registerStore(mux *http.ServeMux) {
 	mux.HandleFunc("/api/convert", sSafe(hStoreConvert))
 	mux.HandleFunc("/api/save", sSafe(hStoreSave))
 	mux.HandleFunc("/api/store/price-file", sSafe(hStorePriceFile))
+	mux.HandleFunc("/api/store/no-price-export", sSafe(hStoreNoPriceExport))
 	mux.HandleFunc("/api/reset-memory", sSafe(hStoreReset))
 }

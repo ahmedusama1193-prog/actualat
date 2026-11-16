@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=35">
-<link rel="stylesheet" href="/assets/theme.css?v=35">
-<script src="/assets/i18n.js?v=35"></script>
+<link rel="stylesheet" href="/assets/base.css?v=36">
+<link rel="stylesheet" href="/assets/theme.css?v=36">
+<script src="/assets/i18n.js?v=36"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 <style>
   .cpick{display:inline-flex;align-items:center;position:relative}
@@ -413,6 +413,11 @@ function showNoPrice(forConvert){
       <label class="rad"><input type="radio" name="pfUse" value="yes" onchange="pfToggle(true)"> ${T('أيوه، استخدم ملف')}</label>
       <span id="pfBox" class="hidden" style="display:inline-flex;gap:10px;align-items:center"><button class="btn sec" onclick="$('pfIn').click()">${T('اختار ملف الأسعار…')}</button><span id="pfMsg" class="small"></span></span>
       <input id="pfIn" type="file" accept=".xlsx,.xlsm" class="hidden" onchange="pfLoad(this)">
+      <span style="flex-basis:100%;height:0"></span>
+      <span class="muted small">${T('أو سعّرهم برّه:')}</span>
+      <button class="btn sec" onclick="npExport()">⬇ ${T('تصدير الأصناف لإكسيل')}</button>
+      <button class="btn sec" onclick="document.querySelector('input[name=pfUse][value=yes]').checked=true;pfToggle(true);$('pfIn').click()">⬆ ${T('ارفع الملف بعد التسعير')}</button>
+      <span id="npxMsg" class="small"></span>
     </div>`+`<div class="muted small" style="margin-bottom:10px">${T('الأصناف دي مالهاش سعر في الشيت ولا في أي شهر تاني. اكتب سعر الوحدة لكل صنف. اللي هتسيبه فاضي هيتشال من ملف PCS (التكلفة صفر). السعر بيتحفظ ويظهرلك المرة الجاية كاقتراح.')}</div>`+
     `<table><thead><tr><th>${T('كود الصنف')}</th><th>${T('الصنف')}</th><th>${T('الوحدة')}</th><th>${T('عدد البنود')}</th><th>${T('الكمية')}</th><th>${T('الشهور')}</th><th>${T('سعر الوحدة')}</th><th>${T('القيمة')}</th></tr></thead><tbody>`+
     np.map((it,i)=>{ const v=prices[it.key]>0?prices[it.key]:(it.saved||'');
@@ -438,6 +443,14 @@ async function pfLoad(inp){
     $('pfMsg').innerHTML=`<i class="ic ok"></i><span translate="no">${esc(j.file)}</span> · ${T('الشيت')} <span translate="no">${esc(j.sheet)}</span> — ${T('لقى سعر')} <b>${n}</b> ${T('من')} ${prep.noPrice.length} ${T('صنف')}`;
     $('pfMsg').style.color=n?'var(--ok)':'var(--warn)';
   }catch(e){ $('pfMsg').textContent=e.message; $('pfMsg').style.color='var(--bad)'; }
+}
+async function npExport(){
+  // الأسعار اللي كتبتها في الشاشة بتطلع في الملف كمان
+  const cur={}; $('mB').querySelectorAll('input.pr').forEach(i=>{ const v=parseFloat(i.value); if(v>0) cur[prep.noPrice[+i.dataset.i].key]=v; });
+  $('npxMsg').textContent=''; 
+  try{ const j=await api('/api/store/no-price-export',{prices:cur});
+    if(j.path){ $('npxMsg').innerHTML=`<i class="ic ok"></i>${T('اتحفظ:')} <span translate="no">${esc(j.path)}</span> — ${T('اكتب الأسعار في عمود «سعر الوحدة» واحفظ، وبعدين ارفعه')}`; $('npxMsg').style.color='var(--ok)'; } }
+  catch(e){ $('npxMsg').textContent=e.message; $('npxMsg').style.color='var(--bad)'; }
 }
 function npAmt(inp){ const it=prep.noPrice[+inp.dataset.i], v=parseFloat(inp.value); $('npa'+inp.dataset.i).textContent=v>0?fmt(v*it.qty):''; npCount(); }
 function npCount(){ const ins=[...$('mB').querySelectorAll('input.pr')]; const e=ins.filter(i=>!(parseFloat(i.value)>0)).length; const el=$('npLeft'); if(el) el.textContent=e?`${e} ${T('صنف لسه من غير سعر')}`:T('كل الأصناف ليها سعر'); }

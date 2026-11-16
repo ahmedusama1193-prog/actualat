@@ -6,10 +6,13 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"math"
 	"net/http"
+	"os"
+	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
@@ -699,3 +702,88 @@ func pfBest(name string, list []*pfName) *pfName {
 }
 
 var unitTok = map[string]bool{"mm": true, "cm": true, "m": true, "inch": true, "w": true, "kg": true, "l": true, "v": true, "pcs": true}
+
+// 2.21: تصدير الأصناف اللي من غير سعر لإكسيل — تسعّرها برّه وترفع نفس الملف تاني من «أيوه، استخدم ملف»
+func hStoreNoPriceExport(w http.ResponseWriter, r *http.Request) {
+	var b struct {
+		Prices map[string]float64 `json:"prices"`
+	}
+	json.NewDecoder(r.Body).Decode(&b)
+	if len(sst.noPrice) == 0 {
+		fail(w, fmt.Errorf("مفيش أصناف من غير سعر"))
+		return
+	}
+	f := excelize.NewFile()
+	defer f.Close()
+	sh := "أصناف من غير سعر"
+	f.SetSheetName("Sheet1", sh)
+	t := true
+	f.SetSheetView(sh, 0, &excelize.ViewOptions{RightToLeft: &t})
+	hs, _ := f.NewStyle(&excelize.Style{Font: &excelize.Font{Bold: true, Color: "FFFFFF"}, Fill: excelize.Fill{Type: "pattern", Color: []string{"163F33"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true}})
+	ph, _ := f.NewStyle(&excelize.Style{Font: &excelize.Font{Bold: true, Color: "163F33"}, Fill: excelize.Fill{Type: "pattern", Color: []string{"E3895B"}, Pattern: 1},
+		Alignment: &excelize.Alignment{Horizontal: "center", Vertical: "center", WrapText: true}})
+	pc, _ := f.NewStyle(&excelize.Style{Fill: excelize.Fill{Type: "pattern", Color: []string{"FFF4D6"}, Pattern: 1}, NumFmt: 4,
+		Border:     []excelize.Border{{Type: "left", Color: "E3895B", Style: 1}, {Type: "right", Color: "E3895B", Style: 1}, {Type: "bottom", Color: "E8DCC0", Style: 1}},
+		Protection: &excelize.Protection{Locked: false}})
+	nf, _ := f.NewStyle(&excelize.Style{NumFmt: 4})
+	hdr := []string{"كود الصنف", "اسم الصنف", "الوحدة", "عدد البنود", "الكمية", "الشهور", "سعر الوحدة", "القيمة"}
+	for i, h := range hdr {
+		c, _ := excelize.CoordinatesToCellName(i+1, 1)
+		f.SetCellValue(sh, c, h)
+	}
+	f.SetCellStyle(sh, "A1", "F1", hs)
+	f.SetCellStyle(sh, "G1", "H1", ph)
+	f.SetRowHeight(sh, 1, 30)
+	for i, it := range sst.noPrice {
+		row := i + 2
+		set := func(col int, v interface{}) {
+			c, _ := excelize.CoordinatesToCellName(col, row)
+			f.SetCellValue(sh, c, v)
+		}
+		set(1, it.Code)
+		set(2, it.Name)
+		set(3, it.Unit)
+		set(4, it.Rows)
+		set(5, it.Qty)
+		set(6, strings.Join(it.Months, "، "))
+		p := b.Prices[it.Key]
+		if p <= 0 {
+			p = it.Saved
+		}
+		if p > 0 {
+			set(7, p)
+		}
+		f.SetCellFormula(sh, fmt.Sprintf("H%d", row), fmt.Sprintf(`IF(G%d="","",G%d*E%d)`, row, row, row))
+		f.SetCellStyle(sh, fmt.Sprintf("G%d", row), fmt.Sprintf("G%d", row), pc)
+		f.SetCellStyle(sh, fmt.Sprintf("E%d", row), fmt.Sprintf("E%d", row), nf)
+		f.SetCellStyle(sh, fmt.Sprintf("H%d", row), fmt.Sprintf("H%d", row), nf)
+	}
+	for i, wd := range []float64{16, 48, 10, 11, 12, 26, 14, 14} {
+		cn, _ := excelize.ColumnNumberToName(i + 1)
+		f.SetColWidth(sh, cn, cn, wd)
+	}
+	f.SetPanes(sh, &excelize.Panes{Freeze: true, YSplit: 1, TopLeftCell: "A2", ActivePane: "bottomLeft"})
+	f.AutoFilter(sh, fmt.Sprintf("A1:H%d", len(sst.noPrice)+1), nil)
+	buf, err := f.WriteToBuffer()
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	name := "أصناف_من_غير_سعر"
+	p, err := saveDialog(name + ".xlsx")
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	if p == "" {
+		writeJSON(w, 200, map[string]string{})
+		return
+	}
+	if err := os.WriteFile(p, buf.Bytes(), 0o644); err != nil {
+		fail(w, fmt.Errorf("مقدرتش أحفظ الملف — لو مفتوح في Excel اقفله وجرّب تاني"))
+		return
+	}
+	setSetting("lastDir", filepath.Dir(p))
+	writeJSON(w, 200, map[string]interface{}{"path": p, "items": len(sst.noPrice)})
+}
