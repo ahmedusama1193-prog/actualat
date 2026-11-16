@@ -215,6 +215,7 @@ type sRow struct {
 	Task    string
 	Cost    string
 	Section string
+	File    string // اسم الملف لو رفعت كذا ملف مع بعض
 	key     string
 }
 
@@ -222,6 +223,11 @@ type storeState struct {
 	mu        sync.Mutex
 	data      []byte
 	name      string
+	extra     []sFile  // ملفات زيادة اترفعت مع الأول (كذا شهر مع بعض) — صفوفها بتتضاف تحت صفوف الأول
+	names     []string // أسماء كل الملفات بالترتيب
+	rowSrc    []int    // لكل صف في rows: رقم الملف (0 = الأول)
+	rowNo     []int    // لكل صف في rows: رقم الصف في ملفه
+	merged    []sMerged
 	sheets    []string
 	sheet     string
 	rows      [][]string
@@ -241,6 +247,17 @@ type storeState struct {
 }
 
 var sst = &storeState{}
+
+type sFile struct {
+	name string
+	data []byte
+}
+
+type sMerged struct {
+	File  string `json:"file"`
+	Sheet string `json:"sheet"`
+	Rows  int    `json:"rows"`
+}
 
 func normH(s string) string { return normAr(strings.Trim(strings.TrimSpace(s), ":")) }
 
@@ -342,7 +359,8 @@ func sheetInfo(w http.ResponseWriter, fromProfile bool) {
 		preview = append(preview, pr)
 	}
 	writeJSON(w, 200, map[string]interface{}{"file": sst.name, "sheets": sst.sheets, "sheet": sst.sheet, "headerRow": sst.hdr,
-		"headers": hs, "preview": preview, "fields": storeFields, "mapping": sst.mapping, "fromProfile": fromProfile})
+		"headers": hs, "preview": preview, "fields": storeFields, "mapping": sst.mapping, "fromProfile": fromProfile,
+		"files": sst.names, "merged": sst.merged})
 }
 
 func (s *storeState) loadSheet(sheet string, hdrRow int) (bool, error) {
@@ -405,10 +423,124 @@ func (s *storeState) loadSheet(sheet string, hdrRow int) (bool, error) {
 	smem.mu.Unlock()
 	if ok {
 		s.mapping = p
-		return true, nil
+	} else {
+		s.mapping = autoMap(s.headers)
 	}
-	s.mapping = autoMap(s.headers)
-	return false, nil
+	if err := s.mergeExtras(); err != nil {
+		return false, err
+	}
+	return ok, nil
+}
+
+func (s *storeState) mergeExtras() error {
+	s.rowSrc, s.rowNo = make([]int, len(s.rows)), make([]int, len(s.rows))
+	for i := range s.rows {
+		s.rowNo[i] = i + 1
+	}
+	s.merged = nil
+	if len(s.extra) == 0 {
+		return nil
+	}
+	s.merged = append(s.merged, sMerged{s.name, s.sheet, len(s.rows) - s.hdr - 1})
+	for k, ef := range s.extra {
+		n, sh, err := s.mergeFile(ef, k+1)
+		if err != nil {
+			return err
+		}
+		s.merged = append(s.merged, sMerged{ef.name, sh, n})
+	}
+	return nil
+}
+
+// mergeFile: يقرا ملف زيادة ويحط صفوفه تحت صفوف الملف الأول بنفس ترتيب أعمدته (بالاسم، أو بنوع العمود لو الاسم مختلف)
+func (s *storeState) mergeFile(ef sFile, idx int) (int, string, error) {
+	f, err := excelize.OpenReader(bytes.NewReader(ef.data))
+	if err != nil {
+		return 0, "", fmt.Errorf("مش قادر أفتح الملف %s: %v", ef.name, err)
+	}
+	defer f.Close()
+	// نفس اسم شيت الملف الأول لو موجود وشكله شيت مخازن، وإلا أقرب شيت
+	var rows [][]string
+	sheet, bs := "", -1
+	for _, sh := range f.GetSheetList() {
+		rr, err := f.GetRows(sh, excelize.Options{RawCellValue: true})
+		if err != nil || len(rr) < 2 {
+			continue
+		}
+		sc := scoreHeader(rr[detectHeader(rr)])
+		if sh == s.sheet && sc > 0 {
+			sc += 1000
+		}
+		if sc > bs {
+			bs, sheet, rows = sc, sh, rr
+		}
+	}
+	if rows == nil || bs <= 0 {
+		return 0, "", fmt.Errorf("الملف %s مافيهوش شيت مخازن", ef.name)
+	}
+	h := detectHeader(rows)
+	eh := rows[h]
+	// عمود الملف الأول j ← عمود الملف ده
+	colOf := make([]int, len(s.headers))
+	byName := map[string]int{}
+	for j, x := range eh {
+		if n := normH(x); n != "" {
+			if _, ok := byName[n]; !ok {
+				byName[n] = j
+			}
+		}
+	}
+	pm, em := autoMap(s.headers), autoMap(eh)
+	fieldOf := map[int]string{}
+	for k, j := range pm.Cols {
+		if j >= 0 {
+			fieldOf[j] = k
+		}
+	}
+	for j, x := range s.headers {
+		colOf[j] = -1
+		if n := normH(x); n != "" {
+			if c, ok := byName[n]; ok {
+				colOf[j] = c
+				continue
+			}
+		}
+		if k, ok := fieldOf[j]; ok && em.Cols[k] >= 0 {
+			colOf[j] = em.Cols[k]
+		}
+	}
+	// لازم أعمدة الربط الأساسية تبقى موجودة في الملف ده
+	var miss []string
+	for _, fl := range storeFields {
+		if j := s.mapping.Cols[fl.Key]; fl.Required && j >= 0 && j < len(colOf) && colOf[j] < 0 {
+			miss = append(miss, strings.TrimSpace(s.headers[j]))
+		}
+	}
+	if len(miss) > 0 {
+		return 0, "", fmt.Errorf("الملف %s شكله مختلف عن الملف الأول — مالقيتش فيه: %s. ارفعه لوحده", ef.name, strings.Join(miss, "، "))
+	}
+	n := 0
+	for i := h + 1; i < len(rows); i++ {
+		r := rows[i]
+		nr := make([]string, len(s.headers))
+		empty := true
+		for j, c := range colOf {
+			if c >= 0 && c < len(r) {
+				nr[j] = r[c]
+				if strings.TrimSpace(r[c]) != "" {
+					empty = false
+				}
+			}
+		}
+		if empty {
+			continue
+		}
+		s.rows = append(s.rows, nr)
+		s.rowSrc = append(s.rowSrc, idx)
+		s.rowNo = append(s.rowNo, i+1)
+		n++
+	}
+	return n, sheet, nil
 }
 
 func codesFromRows(rows [][]string) []*Code {
@@ -426,15 +558,32 @@ func codesFromRows(rows [][]string) []*Code {
 }
 
 func hStoreLoad(w http.ResponseWriter, r *http.Request) {
-	r.ParseMultipartForm(200 << 20)
-	file, hdr, err := r.FormFile("file")
-	if err != nil {
-		fail(w, err)
+	if err := r.ParseMultipartForm(400 << 20); err != nil || r.MultipartForm == nil || len(r.MultipartForm.File["file"]) == 0 {
+		fail(w, fmt.Errorf("اختار ملف"))
 		return
 	}
-	defer file.Close()
-	data, _ := io.ReadAll(file)
-	sst.data, sst.name = data, hdr.Filename
+	var files []sFile
+	seen := map[string]bool{}
+	for _, fh := range r.MultipartForm.File["file"] {
+		if seen[fh.Filename] { // نفس الملف مرتين
+			continue
+		}
+		seen[fh.Filename] = true
+		fr, err := fh.Open()
+		if err != nil {
+			fail(w, err)
+			return
+		}
+		data, _ := io.ReadAll(fr)
+		fr.Close()
+		files = append(files, sFile{fh.Filename, data})
+	}
+	sst.data, sst.name = files[0].data, files[0].name
+	sst.extra = files[1:]
+	sst.names = nil
+	for _, f := range files {
+		sst.names = append(sst.names, f.name)
+	}
 	fp, err := sst.loadSheet("", -1)
 	if err != nil {
 		fail(w, err)
@@ -514,6 +663,12 @@ func (s *storeState) parse() {
 		}
 		if strings.HasPrefix(x.Cost, "#") {
 			x.Cost = ""
+		}
+		if i < len(s.rowNo) {
+			x.Row = s.rowNo[i]
+			if len(s.extra) > 0 && s.rowSrc[i] < len(s.names) {
+				x.File = s.names[s.rowSrc[i]]
+			}
 		}
 		x.key = resKey(x)
 		s.parsed = append(s.parsed, x)
@@ -1043,7 +1198,7 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 			rv.SetColWidth(shn, cn, cn, wd)
 		}
 	}
-	sum := [][]interface{}{{"البند", "القيمة"}, {"ملف المصدر", sst.name}, {"تاريخ التحويل", time.Now().Format("2006-01-02 15:04")},
+	sum := [][]interface{}{{"البند", "القيمة"}, {"ملف المصدر", sst.srcName()}, {"تاريخ التحويل", time.Now().Format("2006-01-02 15:04")},
 		{"عدد البنود اللي اتنقلت", len(outs)}, {"إجمالي القيمة اللي اتنقلت", r2(oAmt)}, {"بنود مستبعدة — الكمية صفر", exQty},
 		{"بنود مستبعدة — التكلفة صفر", exCost}, {"بنود مستبعدة — من غير تاريخ", exDate}, {"بنود اتنقلت من غير " + nameHdr, noName},
 		{"بنود اتنقلت من غير Task Code", noTask}, {}, {"الشهر", "عدد البنود", "القيمة"}}
@@ -1068,6 +1223,10 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 	put("ملخص", sum, []float64{36, 22, 18}, mh, th)
 	var rr [][]interface{}
 	hdrs := []interface{}{"الحالة", "السبب", "رقم الصف في شيت المخازن"}
+	multi := len(sst.extra) > 0
+	if multi {
+		hdrs = append(hdrs, "الملف")
+	}
 	shown := []int{}
 	for _, k := range []string{"date", "code", "name", "desc", "unit", "qty", "rate", "amount"} {
 		if j := sst.mapping.Cols[k]; j >= 0 {
@@ -1079,6 +1238,9 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 	rr = append(rr, hdrs)
 	for _, v := range revs {
 		line := []interface{}{v.status, v.why, v.x.Row}
+		if multi {
+			line = append(line, v.x.File)
+		}
 		for _, j := range shown {
 			val := ""
 			if j < len(v.x.Cells) {
@@ -1148,12 +1310,19 @@ func hStoreConvert(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (s *storeState) srcName() string {
+	if len(s.names) > 1 {
+		return strings.Join(s.names, " + ")
+	}
+	return s.name
+}
+
 func hStoreSave(w http.ResponseWriter, r *http.Request) {
 	if sst.out == nil {
 		fail(w, fmt.Errorf("حوّل الأول"))
 		return
 	}
-	run := &Run{Kind: "store", Period: sst.outTag, Label: "صرف مخازن " + sst.outLabel, Source: sst.name,
+	run := &Run{Kind: "store", Period: sst.outTag, Label: "صرف مخازن " + sst.outLabel, Source: sst.srcName(),
 		Items: sst.outItems, Amount: sst.outAmount,
 		OutName: "PCS_Store_Issues_" + sst.outTag + ".xlsx", RevName: "Review_Store_Issues_" + sst.outTag + ".xlsx"}
 	run.User = reqUser(r)

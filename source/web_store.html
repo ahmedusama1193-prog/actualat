@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=25">
-<link rel="stylesheet" href="/assets/theme.css?v=25">
-<script src="/assets/i18n.js?v=25"></script>
+<link rel="stylesheet" href="/assets/base.css?v=26">
+<link rel="stylesheet" href="/assets/theme.css?v=26">
+<script src="/assets/i18n.js?v=26"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 </head>
 <body>
@@ -16,13 +16,14 @@
   <!-- 1 -->
   <div class="card">
     <div class="step"><span class="num">01</span> اختار شيت المخازن</div>
-    <div id="drop" class="drop" onclick="$('f').click()">اسحب الملف هنا أو <b>اضغط للاختيار</b><br><small>xlsx / xlsm — أي شكل لشيت المخازن</small></div>
-    <input id="f" type="file" accept=".xlsx,.xlsm" class="hidden">
+    <div id="drop" class="drop" onclick="$('f').click()">اسحب الملف هنا أو <b>اضغط للاختيار</b><br><small>xlsx / xlsm — أي شكل لشيت المخازن</small><br><small>تقدر تختار كذا ملف مع بعض (كذا شهر) — بيتجمعوا في تحويل واحد</small></div>
+    <input id="f" type="file" accept=".xlsx,.xlsm" multiple class="hidden">
     <div id="fileRow" class="row hidden" style="margin-top:12px">
       <span id="fileName" translate="no"></span>
       <span class="muted">· الشيت:</span><select id="sheetSel" translate="no" onchange="changeSheet()"></select>
       <span class="muted">· صف العناوين:</span><input id="hdrRow" type="number" min="1" style="width:70px" onchange="changeSheet(true)">
     </div>
+    <div id="filesNote" class="small hidden" style="margin-top:10px"></div>
     <div id="err1" class="err"></div>
   </div>
 
@@ -85,6 +86,7 @@
 <div id="busy" class="busy hidden">جاري الشغل…</div>
 <script>
 const $=id=>document.getElementById(id);
+const T=s=>window.I18N?I18N.t(s):s;
 const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 let info=null, prep=null, groups=[], filter='need', taskMap={}, costMap={};
@@ -101,12 +103,14 @@ function show(...ids){ ids.forEach(i=>$(i).classList.remove('hidden')); }
 const drop=$('drop');
 ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
-drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
-$('f').addEventListener('change',e=>{ if(e.target.files[0]) upload(e.target.files[0]); e.target.value=''; });
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files.length) upload([...e.dataTransfer.files]); });
+$('f').addEventListener('change',e=>{ if(e.target.files.length) upload([...e.target.files]); e.target.value=''; });
 
-async function upload(file){
-  err('err1'); hide('s2','s3','s4','s5','fileRow'); busy(true);
-  const fd=new FormData(); fd.append('file',file);
+async function upload(files){
+  err('err1'); hide('s2','s3','s4','s5','fileRow','filesNote'); busy(true);
+  files=files.filter(f=>/\.xls[xm]$/i.test(f.name));
+  if(!files.length){ busy(false); err('err1','اختار ملف xlsx أو xlsm'); return; }
+  const fd=new FormData(); files.forEach(f=>fd.append('file',f));
   try{ showInfo(await api('/api/load',fd,true)); }catch(e){ err('err1',e.message); }
   busy(false);
 }
@@ -117,7 +121,14 @@ async function changeSheet(useRow){
 }
 function showInfo(j){
   info=j;
-  $('fileName').innerHTML='<i class="ic ok"></i><b>'+esc(j.file)+'</b>';
+  const many=(j.files||[]).length>1;
+  $('fileName').innerHTML='<i class="ic ok"></i><b>'+esc(j.file)+'</b>'+(many?` <span class="muted">+ ${j.files.length-1} ${T('ملف تاني')}</span>`:'');
+  if(many && j.merged){
+    $('filesNote').innerHTML=`<b>${T('الملفات اللي اتجمعت')} (${j.merged.length})</b><table style="max-width:720px;margin-top:6px"><tr><th>${T('الملف')}</th><th>${T('الشيت')}</th><th>${T('عدد الصفوف')}</th></tr>`+
+      j.merged.map(m=>`<tr><td translate="no">${esc(m.file)}</td><td translate="no">${esc(m.sheet)}</td><td class="n">${fmt(m.rows)}</td></tr>`).join('')+'</table>'+
+      `<div class="muted" style="margin-top:6px">${T('الأعمدة بتتربط بأسماء عناوين الملف الأول. اختيار الشيت وصف العناوين تحت للملف الأول، والباقيين البرنامج بيلاقيهم لوحده.')}</div>`;
+    show('filesNote');
+  } else hide('filesNote');
   $('sheetSel').innerHTML=j.sheets.map(s=>`<option ${s===j.sheet?'selected':''}>${esc(s)}</option>`).join('');
   $('hdrRow').value=j.headerRow+1;
   show('fileRow');
