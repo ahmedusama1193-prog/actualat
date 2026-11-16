@@ -4,6 +4,8 @@
    أي عنصر عليه translate="no" (بيانات المستخدم: أسماء الأصناف والمقاولين والشيتات) مابيتترجمش. */
 (function(){
 const D={
+// ---- 2.10: ربط Task ← Cost
+"كل أكواد الـ Task":"All Task codes","البنود المربوطة بـ":"Linked to","مفيش بنود مربوطة بالـ Task ده — كل أكواد الـ Cost":"No items linked to this Task — all Cost codes","كل أكواد الـ Cost":"All Cost codes","مفيش كود بالبحث ده":"No code matches","عرض كل أكواد الـ Cost":"Show all Cost codes",
 // ---- 2.9: كذا ملف مخازن مع بعض + اللوجو
 "تقدر تختار كذا ملف مع بعض (كذا شهر) — بيتجمعوا في تحويل واحد":"You can pick several files at once (several months) — they are combined into one conversion","ملف تاني":"more files","الملفات اللي اتجمعت":"Combined files","الملف":"File","الشيت":"Sheet","عدد الصفوف":"Rows","الأعمدة بتتربط بأسماء عناوين الملف الأول. اختيار الشيت وصف العناوين تحت للملف الأول، والباقيين البرنامج بيلاقيهم لوحده.":"Columns are matched by the first file's header names. The sheet and header-row choice applies to the first file; the others are found automatically.","اختار ملف xlsx أو xlsm":"Choose an xlsx or xlsm file","الصفحة الرئيسية":"Home",
 // ---- 2.7: المالية

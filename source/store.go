@@ -910,7 +910,7 @@ func hStorePrepare(w http.ResponseWriter, r *http.Request) {
 		srcCount[g.Task.Src]++
 	}
 	writeJSON(w, 200, map[string]interface{}{"rows": len(sst.parsed), "amount": r2(total), "months": months, "noDate": noDate,
-		"groups": groups, "codes": sst.cl, "codesFrom": sst.clSrc, "autoSrc": srcCount,
+		"groups": groups, "codes": sst.cl, "links": codeLinks(sst.cl), "codesFrom": sst.clSrc, "autoSrc": srcCount,
 		"codeFix": map[string]int{"taskConverted": fixT, "costConverted": fixC, "taskCleared": clrT, "costCleared": clrC}})
 }
 

@@ -4,10 +4,26 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=26">
-<link rel="stylesheet" href="/assets/theme.css?v=26">
-<script src="/assets/i18n.js?v=26"></script>
+<link rel="stylesheet" href="/assets/base.css?v=27">
+<link rel="stylesheet" href="/assets/theme.css?v=27">
+<script src="/assets/i18n.js?v=27"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
+<style>
+  .cpick{display:inline-flex;align-items:center;position:relative}
+  .cpick input.code{padding-right:26px!important}
+  .cbtn{position:absolute;right:3px;top:50%;transform:translateY(-50%);width:22px;height:24px;border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0}
+  .cbtn:hover{color:var(--ink)}
+  #pick{position:fixed;z-index:50;width:360px;max-height:340px;overflow:auto;background:var(--card,var(--bg));border:1px solid var(--line2);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:4px 0}
+  #pick .ph{position:sticky;top:-4px;background:inherit;padding:7px 12px 6px;font-size:11.5px;color:var(--muted);border-bottom:1px solid var(--line);font-weight:600}
+  #pick .po{display:flex;gap:10px;align-items:baseline;padding:7px 12px;cursor:pointer;font-size:13px}
+  #pick .po b{direction:ltr;font-weight:600;min-width:74px;font-variant-numeric:tabular-nums}
+  #pick .po span{color:var(--muted)}
+  #pick .po.on,#pick .po:hover{background:var(--line)}
+  #pick .po.cur b{color:var(--pri)}
+  #pick .pall{display:block;width:100%;text-align:start;padding:8px 12px;border:none;border-top:1px solid var(--line);background:none;color:var(--pri);font:inherit;font-size:12.5px;cursor:pointer}
+  #pick .pe{padding:10px 12px;color:var(--muted);font-size:12.5px}
+  tr.flash td{transition:background .6s;background:color-mix(in srgb,var(--pri) 12%,transparent)}
+</style>
 </head>
 <body>
 <main>
@@ -83,13 +99,14 @@
   </div>
 
 </main>
+<div id="pick" class="hidden" onmousedown="event.preventDefault()"></div>
 <div id="busy" class="busy hidden">جاري الشغل…</div>
 <script>
 const $=id=>document.getElementById(id);
 const T=s=>window.I18N?I18N.t(s):s;
 const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-let info=null, prep=null, groups=[], filter='need', taskMap={}, costMap={};
+let info=null, prep=null, groups=[], filter='need', taskMap={}, costMap={}, links={}, taskWP={};
 function busy(on){ $('busy').classList.toggle('hidden',!on); }
 function err(id,m){ const e=$(id); e.textContent=m||''; e.style.display=m?'block':'none'; }
 async function api(url,body,isForm){
@@ -165,7 +182,8 @@ async function prepare(){
     show('s3');
     // codes
     taskMap={}; costMap={};
-    prep.codes.task.forEach(c=>taskMap[c.code]=c.ar||c.en);
+    prep.codes.task.forEach(c=>{ taskMap[c.code]=c.ar||c.en; taskWP[c.code]=c.wpName||c.wp||''; });
+    links=prep.links||{};
     prep.codes.cost.forEach(c=>costMap[c.code]=c.ar||c.en);
     $('dlTask').innerHTML=prep.codes.task.map(c=>`<option value="${esc(c.code)}">${esc(c.code+' — '+(c.ar||c.en))}</option>`).join('');
     $('dlCost').innerHTML=prep.codes.cost.map(c=>`<option value="${esc(c.code)}">${esc(c.code+' — '+(c.ar||c.en))}</option>`).join('');
@@ -204,7 +222,7 @@ function renderGroups(){
     const i=groups.indexOf(g);
     const low=(p,need)=>need && !SURE.has(p.src);
     const cls=(g.needTask&&g.task.src==='default')||(g.needCost&&g.cost.src==='default')?'r':(low(g.task,g.needTask)||low(g.cost,g.needCost)?'y':'');
-    const cell=(need,val,dl,map,k)=> need ? `<input class="code" list="${dl}" value="${esc(val)}" data-i="${i}" data-k="${k}" oninput="setCode(this)"><span class="cdesc" translate="no">${esc(map[val]||'')}</span>` : '<span class="muted small">من الشيت</span>';
+    const cell=(need,val,dl,map,k)=> need ? `<span class="cpick"><input class="code" autocomplete="off" value="${esc(val)}" data-i="${i}" data-k="${k}" onfocus="openPick(this)" onclick="openPick(this)" oninput="setCode(this);pickFilter(this)" onkeydown="pickKey(event,this)" onblur="setTimeout(closePick,120)"><button type="button" class="cbtn" tabindex="-1" onmousedown="event.preventDefault();const x=this.previousElementSibling;x.focus();openPick(x)">▾</button></span><span class="cdesc" translate="no">${esc(map[val]||'')}</span>` : '<span class="muted small">من الشيت</span>';
     return `<tr class="${cls}"><td class="n" translate="no">${esc(g.code)}</td><td translate="no">${esc(g.desc)}</td><td class="small" translate="no">${esc(g.section)}</td><td class="n">${fmt(g.amount)}</td>
       <td>${cell(g.needTask,g.t,'dlTask',taskMap,'t')}</td><td>${cell(g.needCost,g.c,'dlCost',costMap,'c')}</td>
       <td>${g.needTask?tagOf(g.task):''} ${g.needCost&&(!g.needTask||g.cost.src!==g.task.src)?tagOf(g.cost):''}</td></tr>`;
@@ -214,9 +232,74 @@ function setCode(inp){
   const g=groups[+inp.dataset.i]; const v=inp.value.trim();
   g[inp.dataset.k]=v;
   const map=inp.dataset.k==='t'?taskMap:costMap;
-  inp.nextElementSibling.textContent=map[v]||(v?'كود مش في القايمة':''); inp.nextElementSibling.style.color=(v&&!map[v])?'var(--warn)':'';
+  const d=inp.parentNode.nextElementSibling; d.textContent=map[v]||(v?'كود مش في القايمة':''); d.style.color=(v&&!map[v])?'var(--warn)':'';
   const p=inp.dataset.k==='t'?g.task:g.cost; p.src='memory'; g.edited=true; // reviewed by user
+  if(inp.dataset.k==='t' && taskMap[v]) syncCost(+inp.dataset.i);
 }
+// لو الـ Cost الحالي مش من البنود المربوطة بالـ Task الجديد ← أول بند مربوط
+function syncCost(i){
+  const g=groups[i]; if(!g.needCost) return;
+  const l=links[g.t]||[]; if(!l.length || l.includes(g.c)) return;
+  g.c=l[0]; g.cost.src='memory'; g.edited=true;
+  const ci=document.querySelector(`#grpBody input[data-i="${i}"][data-k="c"]`);
+  if(ci){ ci.value=g.c; const d=ci.parentNode.nextElementSibling; d.textContent=costMap[g.c]||''; d.style.color='';
+    const tr=ci.closest('tr'); tr.classList.add('flash'); setTimeout(()=>tr.classList.remove('flash'),900); }
+}
+
+// ---------- قايمة الأكواد (Task كلها · Cost المربوط بالـ Task بس) ----------
+let pk={inp:null,all:false,typed:false,act:-1,vals:[]};
+function openPick(inp){
+  if(pk.inp!==inp){ pk={inp,all:false,typed:false,act:-1,vals:[]}; }
+  renderPick(); placePick();
+}
+function pickFilter(inp){ if(pk.inp!==inp) pk={inp,all:false,typed:false,act:-1,vals:[]}; pk.typed=true; renderPick(); placePick(); }
+function closePick(){ const a=document.activeElement; if(a&&a.classList&&a.classList.contains('code')&&a===pk.inp) return; $('pick').classList.add('hidden'); pk.inp=null; }
+function placePick(){
+  const el=$('pick'), r=pk.inp.getBoundingClientRect(); el.classList.remove('hidden');
+  const w=el.offsetWidth, h=el.offsetHeight;
+  let left=document.documentElement.dir==='rtl'? r.right-w : r.left; left=Math.max(8,Math.min(left,innerWidth-w-8));
+  let top=r.bottom+4; if(top+h>innerHeight-8) top=Math.max(8,r.top-h-4);
+  el.style.left=left+'px'; el.style.top=top+'px';
+}
+function renderPick(){
+  const inp=pk.inp, g=groups[+inp.dataset.i], k=inp.dataset.k, cur=inp.value.trim();
+  const q=pk.typed?cur.toLowerCase():'';
+  let list, head='', canAll=false;
+  if(k==='t'){ list=prep.codes.task.map(c=>c.code); head=T('كل أكواد الـ Task'); }
+  else{
+    const l=links[g.t]||[];
+    if(l.length && !pk.all){ list=l.slice(); head=T('البنود المربوطة بـ')+' '+g.t+(taskMap[g.t]?' — '+taskMap[g.t]:''); canAll=true; }
+    else { list=prep.codes.cost.map(c=>c.code); head=g.t&&!l.length?T('مفيش بنود مربوطة بالـ Task ده — كل أكواد الـ Cost'):T('كل أكواد الـ Cost'); }
+  }
+  const map=k==='t'?taskMap:costMap;
+  if(q) list=list.filter(c=>(c+' '+(map[c]||'')).toLowerCase().includes(q));
+  pk.vals=list; if(pk.act>=list.length) pk.act=list.length-1;
+  let html=`<div class="ph">${esc(head)}</div>`, lastWP=null;
+  list.forEach((c,j)=>{
+    if(k==='t' && !q && taskWP[c]!==lastWP){ lastWP=taskWP[c]; html+=`<div class="ph" style="position:static;border:none;padding-top:10px" translate="no">${esc(c.slice(0,5))} · ${esc(lastWP)}</div>`; }
+    html+=`<div class="po${c===cur?' cur':''}${j===pk.act?' on':''}" data-j="${j}" onmousedown="choosePick(${j})"><b translate="no">${esc(c)}</b><span translate="no">${esc(map[c]||'')}</span></div>`;
+  });
+  if(!list.length) html+=`<div class="pe">${T('مفيش كود بالبحث ده')}</div>`;
+  if(canAll) html+=`<button type="button" class="pall" onmousedown="pk.all=true;renderPick();placePick()">${T('عرض كل أكواد الـ Cost')}</button>`;
+  $('pick').innerHTML=html;
+  const a=$('pick').querySelector('.po.on')||(!pk.typed&&$('pick').querySelector('.po.cur')); if(a) a.scrollIntoView({block:'nearest'});
+}
+function choosePick(j){
+  const inp=pk.inp, v=pk.vals[j]; if(!inp||v==null) return;
+  inp.value=v; setCode(inp);
+  $('pick').classList.add('hidden'); pk.inp=null;
+  // بعد اختيار الـ Task افتح الـ Cost المربوط على طول
+  if(inp.dataset.k==='t'){ const ci=document.querySelector(`#grpBody input[data-i="${inp.dataset.i}"][data-k="c"]`); if(ci){ ci.focus(); openPick(ci); } }
+  else inp.blur();
+}
+function pickKey(e,inp){
+  if($('pick').classList.contains('hidden')||pk.inp!==inp){ if(e.key==='ArrowDown'){ openPick(inp); e.preventDefault(); } return; }
+  if(e.key==='ArrowDown'||e.key==='ArrowUp'){ e.preventDefault(); const n=pk.vals.length; if(!n) return; pk.act=(pk.act+(e.key==='ArrowDown'?1:-1)+n)%n; renderPick(); }
+  else if(e.key==='Enter'){ e.preventDefault(); if(pk.act>=0) choosePick(pk.act); else if(pk.vals.length===1) choosePick(0); else { $('pick').classList.add('hidden'); } }
+  else if(e.key==='Escape'){ $('pick').classList.add('hidden'); }
+}
+addEventListener('scroll',()=>{ if(pk.inp) placePick(); },true);
+addEventListener('resize',()=>{ if(pk.inp) placePick(); });
 function pickAll(v){ document.querySelectorAll('#months input').forEach(i=>{i.checked=v;i.parentNode.classList.toggle('on',v);}); }
 
 // ---------- 5 ----------
