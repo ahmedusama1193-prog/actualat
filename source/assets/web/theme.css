@@ -239,3 +239,6 @@ th,.tbl th{font-size:var(--fs-sm)!important}
 .ptitle h1{font-family:"ReemKufi","IBM Plex Sans Arabic",sans-serif!important;font-weight:700!important;letter-spacing:0!important;line-height:1.15}
 .ptitle{position:relative;border-bottom:1px solid var(--line2)!important}
 .ptitle::after{content:"";position:absolute;bottom:-2px;inset-inline-start:0;width:64px;height:4px;background:var(--pri);transform:none;transform-origin:bottom}
+
+/* 2.13: عنوان الجدول الثابت (sticky) بخلفية صلبة عشان البنود ماتبانش تحته وهي بتتحرك */
+.scroll th{background:var(--card)!important;z-index:3!important;box-shadow:inset 0 -1px 0 var(--ink)}
