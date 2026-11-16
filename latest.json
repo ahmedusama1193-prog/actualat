@@ -1,6 +1,6 @@
 {
-  "version": "2.12",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/d221e653bdc5bf1e01a6456bf08a305f27f338dd/Actualat.exe",
-  "sha256": "4a89ca04544c072dbeda56c1b0c6312aa2370a15d439e70152b6c8291b8c4717",
-  "notes": "شاشة البداية: المحتوى في النص"
+  "version": "2.13",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/18773bb90ef7a4e8efbd615c9825f207f9e53ab8/Actualat.exe",
+  "sha256": "82e2e1c87717e2ba1a00fed5909b5dd59b91877d01d718edc01f4aeef4a41182",
+  "notes": "صف العناوين في الجداول مابقاش يتداخل مع البنود"
 }
