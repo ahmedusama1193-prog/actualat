@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=38">
-<link rel="stylesheet" href="/assets/theme.css?v=38">
-<script src="/assets/i18n.js?v=38"></script>
+<link rel="stylesheet" href="/assets/base.css?v=39">
+<link rel="stylesheet" href="/assets/theme.css?v=39">
+<script src="/assets/i18n.js?v=39"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 <style>
   .cpick{display:inline-flex;align-items:center;position:relative}
@@ -30,7 +30,7 @@
   #pick .pe{padding:10px 12px;color:var(--muted);font-size:12.5px}
   tr.flash td{transition:background .6s;background:color-mix(in srgb,var(--pri) 12%,transparent)}
   /* 2.23: جدول الأكواد بعرض الشاشة كلها */
-  #codesBox .scroll.wide{position:relative;max-height:calc(100vh - 210px)}
+  #codesBox .scroll.wide{position:relative;max-height:calc(100vh - 280px)}
   #codesBox .scroll.wide table{width:100%}
   #codesBox .scroll.wide td:nth-child(2){min-width:220px}
   /* 2.15: شاشة منبثقة */
@@ -281,8 +281,10 @@ function toggleCodes(){ $('codesBox').classList.toggle('hidden'); renderGroups()
 // جدول الأكواد بياخد عرض الشاشة كلها (مش عرض الصفحة) عشان السطر كله يبان من غير سكرول جانبي
 function widenCodes(){
   const el=document.querySelector('#codesBox .scroll'); if(!el || $('codesBox').classList.contains('hidden')) return;
-  el.classList.add('wide'); el.style.left='0px'; el.style.width=(innerWidth-48)+'px';
-  const r=el.getBoundingClientRect(); el.style.left=(24-r.left)+'px';
+  // أعرض من الصفحة بس مش لآخر الشاشة: حوالي 86% من عرض الشاشة وفي النص
+  const W=Math.min(innerWidth-48, Math.max(Math.round(innerWidth*0.86), el.parentNode.clientWidth));
+  el.classList.add('wide'); el.style.left='0px'; el.style.width=W+'px';
+  const r=el.getBoundingClientRect(); el.style.left=((innerWidth-W)/2-r.left)+'px';
 }
 addEventListener('resize',widenCodes);
 function isReview(g){ return (g.needTask && !SURE.has(g.task.src)) || (g.needCost && !SURE.has(g.cost.src)); }
