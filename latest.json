@@ -1,6 +1,6 @@
 {
-  "version": "2.13",
-  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/18773bb90ef7a4e8efbd615c9825f207f9e53ab8/Actualat.exe",
-  "sha256": "82e2e1c87717e2ba1a00fed5909b5dd59b91877d01d718edc01f4aeef4a41182",
-  "notes": "صف العناوين في الجداول مابقاش يتداخل مع البنود"
+  "version": "2.14",
+  "url": "https://raw.githubusercontent.com/ahmedusama1193-prog/actualat/97a81bb39b79efbd3d3f4d87e86a1d45f220fe91/Actualat.exe",
+  "sha256": "1c6eec462788baeb35a117a341a3f20a0d7d652c5ab1f411e71a78cf57110b74",
+  "notes": "بحث بالاسم أو الكود في قوايم Task و Cost"
 }
