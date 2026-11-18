@@ -205,6 +205,7 @@ var (
 	pGetModule  = syscall.NewLazyDLL("kernel32.dll").NewProc("GetModuleHandleW")
 	pSysMetrics = user32.NewProc("GetSystemMetrics")
 	pRedraw     = user32.NewProc("SetWindowPos")
+	pShowWin    = user32.NewProc("ShowWindow")
 )
 
 // هوية خاصة بالبرنامج في شريط المهام، عشان ويندوز مايجمعهوش تحت أيقونة قديمة متثبتة
@@ -373,6 +374,7 @@ func main() {
 	darkTitle(hwnd, uiTheme() == "dark")
 	titleHook = func(dark bool) { w.Dispatch(func() { darkTitle(hwnd, dark) }) }
 	w.SetSize(1360, 900, webview2.HintNone)
+	pShowWin.Call(hwnd, 3) // 2.25: يفتح بحجم الشاشة (SW_MAXIMIZE)
 	w.Navigate(strings.TrimRight(url, "/") + startPath())
 	w.Run()
 }

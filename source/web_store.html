@@ -4,9 +4,9 @@
 <meta charset="utf-8">
 <title>المستودعات</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="/assets/base.css?v=39">
-<link rel="stylesheet" href="/assets/theme.css?v=39">
-<script src="/assets/i18n.js?v=39"></script>
+<link rel="stylesheet" href="/assets/base.css?v=40">
+<link rel="stylesheet" href="/assets/theme.css?v=40">
+<script src="/assets/i18n.js?v=40"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
 <style>
   .cpick{display:inline-flex;align-items:center;position:relative}
@@ -279,13 +279,7 @@ const SRC={memory:'ذاكرة',sheet:'من الشيت',known:'صنف معروف'
 const SURE=new Set(['memory','sheet','known']);
 function toggleCodes(){ $('codesBox').classList.toggle('hidden'); renderGroups(); widenCodes(); }
 // جدول الأكواد بياخد عرض الشاشة كلها (مش عرض الصفحة) عشان السطر كله يبان من غير سكرول جانبي
-function widenCodes(){
-  const el=document.querySelector('#codesBox .scroll'); if(!el || $('codesBox').classList.contains('hidden')) return;
-  // أعرض من الصفحة بس مش لآخر الشاشة: حوالي 86% من عرض الشاشة وفي النص
-  const W=Math.min(innerWidth-48, Math.max(Math.round(innerWidth*0.86), el.parentNode.clientWidth));
-  el.classList.add('wide'); el.style.left='0px'; el.style.width=W+'px';
-  const r=el.getBoundingClientRect(); el.style.left=((innerWidth-W)/2-r.left)+'px';
-}
+function widenCodes(){} // 2.25: الصفحة كلها بقت بعرض الشاشة، فالجدول مش محتاج توسيع لوحده
 addEventListener('resize',widenCodes);
 function isReview(g){ return (g.needTask && !SURE.has(g.task.src)) || (g.needCost && !SURE.has(g.cost.src)); }
 function setFilter(f){ filter=f; $('fltNeed').classList.toggle('on',f==='need'); $('fltAll').classList.toggle('on',f==='all'); renderGroups(); }

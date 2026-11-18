@@ -22,7 +22,7 @@ body{font-size:14.5px}
 ::-webkit-scrollbar-track{background:transparent}
 
 /* عنوان الصفحة */
-main{max-width:1240px!important;padding:26px 28px 40px!important;margin:0 auto!important}
+main{max-width:none!important;width:auto!important;padding:24px clamp(18px,2.2vw,40px) 40px!important;margin:0!important} /* 2.25: بعرض الشاشة */
 .ptitle{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 20px}
 .ptitle h1{margin:0;font-size:27px;font-weight:700;letter-spacing:-.2px;color:var(--ink)}
 .ptitle .sub{color:var(--muted);font-size:13.5px;margin-top:2px}
@@ -81,6 +81,8 @@ html[data-theme=light] .badge.ipc{color:#a8481f;box-shadow:none}
 html[data-theme=light] .badge.store{color:#1f5c4a}
 .badge.fin{color:#c9b7f2;background:rgba(150,120,220,.14);border-color:rgba(150,120,220,.5)}
 html[data-theme=light] .badge.fin{color:#5b3f9e}
+.badge.boq,.badge.res{color:#e8c27a;background:rgba(200,160,60,.14);border-color:rgba(200,160,60,.5)}
+html[data-theme=light] .badge.boq,html[data-theme=light] .badge.res{color:#7a5a12}
 .badge.done{color:var(--ok);background:var(--okbg)}
 .badge.gone{color:var(--warn);background:var(--y)}
 .amt{font-weight:700;direction:ltr;unicode-bidi:plaintext;white-space:nowrap}

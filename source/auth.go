@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"net/http"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -143,6 +144,41 @@ func sessionUser(r *http.Request) string {
 type creds struct {
 	User, Pass, NewPass string
 	Remember            *bool
+	SavePw              *bool
+}
+
+// 2.25 — «احفظ الباسورد»: البرنامج يدخل لوحده المرة الجاية على نفس الجهاز ونفس حساب ويندوز.
+// الباسورد نفسه مابيتخزنش — بيتخزن اسم الحساب + بصمة الجهاز/مستخدم ويندوز، و«خروج» بيلغيه.
+func deviceStamp() string {
+	h, _ := os.Hostname()
+	s := sha256.Sum256([]byte("actualat|" + strings.ToLower(h) + "|" + strings.ToLower(userName())))
+	return hex.EncodeToString(s[:12])
+}
+
+func setAutoLogin(c creds, key string) {
+	if c.SavePw == nil {
+		return
+	}
+	if *c.SavePw {
+		setSetting("autoLogin", key+"|"+deviceStamp())
+	} else {
+		setSetting("autoLogin", "")
+	}
+}
+
+// لو فيه دخول محفوظ لنفس الجهاز: يفتح جلسة لوحده
+func tryAutoLogin(w http.ResponseWriter) string {
+	v := getSetting("autoLogin")
+	i := strings.LastIndex(v, "|")
+	if i <= 0 || v[i+1:] != deviceStamp() {
+		return ""
+	}
+	a := getAccount(v[:i])
+	if a == nil {
+		return ""
+	}
+	startSession(w, userKey(a.Name))
+	return a.Name
 }
 
 func readCreds(r *http.Request) (u, p, np string) {
@@ -177,7 +213,11 @@ func registerAuth(mux *http.ServeMux) {
 				titleHook(t == "dark")
 			}
 		}
-		writeJSON(w, 200, map[string]interface{}{"hasUsers": len(listAccounts()) > 0, "user": sessionUser(r), "lastUser": getSetting("lastUser"), "lang": uiLang(), "theme": uiTheme(), "version": appVersion, "welcome": getSetting("welcome")})
+		user := sessionUser(r)
+		if user == "" && r.URL.Query().Get("noauto") == "" {
+			user = tryAutoLogin(w)
+		}
+		writeJSON(w, 200, map[string]interface{}{"hasUsers": len(listAccounts()) > 0, "user": user, "savedPw": getSetting("autoLogin") != "", "lastUser": getSetting("lastUser"), "lang": uiLang(), "theme": uiTheme(), "version": appVersion, "welcome": getSetting("welcome")})
 	})
 	// أول حساب على الجهاز — مسموح بس لو مفيش ولا حساب
 	mux.HandleFunc("/api/auth/setup", func(w http.ResponseWriter, r *http.Request) {
@@ -193,6 +233,7 @@ func registerAuth(mux *http.ServeMux) {
 		}
 		putAccount(a)
 		rememberUser(c, a.Name)
+		setAutoLogin(c, userKey(a.Name))
 		startSession(w, userKey(a.Name))
 		writeJSON(w, 200, map[string]string{"user": a.Name})
 	})
@@ -205,6 +246,7 @@ func registerAuth(mux *http.ServeMux) {
 			return
 		}
 		rememberUser(c, a.Name)
+		setAutoLogin(c, userKey(a.Name))
 		startSession(w, userKey(a.Name))
 		writeJSON(w, 200, map[string]string{"user": a.Name})
 	})
@@ -215,6 +257,7 @@ func registerAuth(mux *http.ServeMux) {
 			sessMu.Unlock()
 		}
 		http.SetCookie(w, &http.Cookie{Name: sessCookie, Value: "", Path: "/", MaxAge: -1})
+		setSetting("autoLogin", "") // «خروج» = مايدخلش لوحده تاني لحد ما تختار «احفظ الباسورد»
 		writeJSON(w, 200, map[string]string{"ok": "1"})
 	})
 	// باقي العمليات محتاجة دخول (الـ middleware بيتأكد)

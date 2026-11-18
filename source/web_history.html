@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>السجل</title>
-<link rel="stylesheet" href="/assets/base.css?v=39">
-<link rel="stylesheet" href="/assets/theme.css?v=39">
-<script src="/assets/i18n.js?v=39"></script>
+<link rel="stylesheet" href="/assets/base.css?v=40">
+<link rel="stylesheet" href="/assets/theme.css?v=40">
+<script src="/assets/i18n.js?v=40"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();</script>
 <style>
   .tbl td.fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;direction:ltr;text-align:left}
@@ -27,6 +27,7 @@
       <button class="utab" id="fStore" onclick="flt('store')">المستودعات</button>
       <button class="utab" id="fIpc" onclick="flt('ipc')">المستخلصات</button>
       <button class="utab" id="fFin" onclick="flt('fin')">المالية</button>
+      <button class="utab" id="fCod" onclick="flt('cod')">Coding</button>
     </div>
     <input id="q" class="search" placeholder="بحث باسم الملف أو الفترة…" oninput="render()">
   </div>
@@ -52,22 +53,22 @@ async function load(){
   try{ const j=await api('/api/history/list'); runs=j.runs||[]; $('pill').classList.remove('off'); $('pillT').textContent='قاعدة البيانات شغالة'; render(); }
   catch(e){ $('pill').classList.add('off'); $('pillT').textContent='قاعدة البيانات مش متاحة'; err(e.message); }
 }
-function flt(x){ f=x; ['All','Store','Ipc','Fin'].forEach(k=>$('f'+k).classList.toggle('on',k.toLowerCase()===x)); render(); }
-function period(r){ let p=r.kind==='store'? r.label.replace('صرف مخازن ','') : r.label.replace('مستخلصات — ','').replace('مالية — ','');
+function flt(x){ f=x; ['All','Store','Ipc','Fin','Cod'].forEach(k=>$('f'+k).classList.toggle('on',k.toLowerCase()===x)); render(); }
+function period(r){ let p=r.kind==='store'? r.label.replace('صرف مخازن ','') : r.label.replace('مستخلصات — ','').replace('مالية — ','').replace('تكويد BOQ — ','BOQ · ').replace('تكويد Resources — ','Resources · ');
   const m=p.split(' + '); if(m.length>2) p=`${m[0].split(' ')[0]} ← ${m[m.length-1]} (${m.length} شهور)`; return T(p); }
 function fname(r){ return (r.savedPath||r.outName||'').split(/[\\/]/).pop(); }
 function render(){
   const q=$('q').value.trim().toLowerCase();
-  const list=runs.filter(r=>(f==='all'||r.kind===f) && (!q || (fname(r)+' '+r.source+' '+r.label+' '+period(r)).toLowerCase().includes(q)));
+  const list=runs.filter(r=>(f==='all'||r.kind===f||(f==='cod'&&(r.kind==='boq'||r.kind==='res'))) && (!q || (fname(r)+' '+r.source+' '+r.label+' '+period(r)).toLowerCase().includes(q)));
   $('empty').classList.toggle('hidden',list.length>0);
   $('cnt').textContent=list.length?`${list.length} ملف`:'';
   const c=cur();
   $('body').innerHTML=list.map(r=>`<tr>
     <td class="n" style="white-space:nowrap;text-align:start">${esc(r.created)}</td>
-    <td><span class="badge ${r.kind}">${r.kind==='store'?'المستودعات':r.kind==='fin'?'المالية':'المستخلصات'}</span></td>
+    <td><span class="badge ${r.kind}">${r.kind==='store'?'المستودعات':r.kind==='fin'?'المالية':(r.kind==='boq'||r.kind==='res')?'Coding':'المستخلصات'}</span></td>
     <td class="per" title="${esc(period(r))}">${esc(period(r))}</td>
     <td class="fn" translate="no" title="${esc(r.savedPath)}">${esc(fname(r))}</td>
-    <td style="white-space:nowrap">${Number(r.items||0).toLocaleString('en-US')} ${r.kind==='ipc'?'مستخلص':r.kind==='fin'?'سطر':'بند'}</td>
+    <td style="white-space:nowrap">${Number(r.items||0).toLocaleString('en-US')} ${r.kind==='ipc'?'مستخلص':r.kind==='fin'?'سطر':r.kind==='res'?'مورد':'بند'}</td>
     <td><span class="amt">${fmt(r.amount)}</span>${c?`<span class="cur">${esc(c)}</span>`:''}</td>
     <td>${r.exists?'<span class="badge done" title="الملف موجود في مكانه">محفوظ</span>':'<span class="badge gone" title="الملف اتنقل أو اتمسح — تقدر تنزّله تاني من هنا">مش في مكانه</span>'}</td>
     <td><div class="acts">

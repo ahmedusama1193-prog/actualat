@@ -45,6 +45,9 @@ var financeHTML []byte
 //go:embed web_welcome.html
 var welcomeHTML []byte
 
+//go:embed web_coding.html
+var codingHTML []byte
+
 // startPath: البرنامج بيفتح دايمًا على شاشة البداية (فيها الدخول)
 func startPath() string { return "/welcome.html" }
 
@@ -328,6 +331,7 @@ func startServerOn(addr string) (string, error) {
 	mux.HandleFunc("/store.html", page(storeHTML))
 	mux.HandleFunc("/ipc.html", page(ipcHTML))
 	mux.HandleFunc("/finance.html", page(financeHTML))
+	mux.HandleFunc("/coding.html", page(codingHTML))
 	mux.HandleFunc("/history.html", page(historyHTML))
 	mux.HandleFunc("/dashboard.html", page(dashboardHTML))
 	mux.HandleFunc("/analytics.html", page(analyticsHTML))
@@ -337,6 +341,7 @@ func startServerOn(addr string) (string, error) {
 	mux.HandleFunc("/welcome.html", page(welcomeHTML))
 	registerStore(mux)
 	registerFinance(mux)
+	registerCoding(mux)
 	registerHistory(mux)
 	sub, _ := fs.Sub(webFS, "assets/web")
 	files := http.StripPrefix("/assets/", http.FileServer(http.FS(sub)))

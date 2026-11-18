@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Coding</title>
+<link rel="stylesheet" href="/assets/base.css?v=40">
+<link rel="stylesheet" href="/assets/theme.css?v=40">
+<script src="/assets/i18n.js?v=40"></script>
+<script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();</script>
+<style>
+.shTbl td,.shTbl th{white-space:nowrap}
+.shTbl select{max-width:200px;padding:4px 6px}
+.shTbl input[type=number]{width:64px;padding:4px 6px}
+tr.skip td{opacity:.45} tr.skip td.cb{opacity:1}
+td.cb{width:34px;text-align:center}
+.desc{min-width:340px;max-width:620px;white-space:normal;line-height:1.55}
+.desc .sec{display:block;font-size:11.5px;color:var(--muted);margin-top:2px}
+.desc .rw{font-size:11px;color:var(--muted)}
+input.csi,input.code{direction:ltr;unicode-bidi:plaintext;text-align:left;font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+input.csi{width:110px} input.code{width:112px}
+td.u{unicode-bidi:plaintext;white-space:nowrap}
+.cdesc{max-width:230px}
+.boq{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;white-space:nowrap}
+.divs{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 12px}
+.divs .chip b{font-weight:700;margin-inline-start:4px}
+.bulk{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:6px 0 10px;padding:10px 12px;border:1px dashed var(--line2)}
+.bulk input{min-width:340px;padding:6px 10px}
+.more{margin-top:10px}
+.why{font-size:11px;color:var(--muted);display:block;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+select.rt{padding:4px 6px}
+.optrow{display:flex;align-items:center;gap:8px;margin:4px 0 14px}
+.optrow input{width:16px;height:16px;margin:0}
+</style>
+</head>
+<body>
+<main>
+  <div class="ptitle"><div><h1>Coding</h1><div class="sub">تكويد الـ BOQ بـ CSI MasterFormat 2018 و Task Code، وتكويد الـ Resource List بـ Cost Code و CSI — جاهزين للرفع على PCS</div></div></div>
+<section>
+  <!-- 1 -->
+  <div class="card">
+    <div class="step"><span class="num">01</span> هتكوّد إيه؟</div>
+    <div class="modes" id="modeList">
+      <label class="mode on" data-m="boq"><input type="radio" name="mode" value="boq" checked onchange="pickMode('boq')">
+        <div><div class="l">تكويد BOQ</div><div class="s">كل بند ← CSI (MasterFormat 2018) + Task Code من مكتبة PCS + كود بند بصيغة CSI</div></div></label>
+      <label class="mode" data-m="res"><input type="radio" name="mode" value="res" onchange="pickMode('res')">
+        <div><div class="l">تكويد Resource List</div><div class="s">كل مورد ← النوع (مواد / عمالة / معدات / مقاول باطن) + Cost Code + CSI</div></div></label>
+    </div>
+    <div id="drop" class="drop" onclick="$('f').click()" style="margin-top:14px">اسحب الملف هنا أو <b>اضغط للاختيار</b><br><small id="dropHint">xlsx / xlsm — أي شكل مقايسة: البرنامج بيلاقي صف العناوين والأعمدة، وبيشيل عناوين الأقسام والإجماليات</small></div>
+    <input id="f" type="file" accept=".xlsx,.xlsm" class="hidden">
+    <div id="fileRow" class="row hidden" style="margin-top:12px"><span id="fileName" translate="no"></span></div>
+    <div id="err1" class="err"></div>
+  </div>
+
+  <!-- 2 -->
+  <div id="s2" class="card hidden">
+    <div class="step"><span class="num">02</span> الشيتات والأعمدة</div>
+    <div class="small muted" style="margin-bottom:8px">لو البرنامج غلط في عمود اختاره من القايمة. شيل علامة الشيت اللي مش عايزه (زي الملخص).</div>
+    <div class="scroll" style="max-height:340px"><table class="shTbl"><thead id="shHead"></thead><tbody id="shBody"></tbody></table></div>
+    <div id="shNote" class="small" style="margin-top:8px" translate="no"></div>
+  </div>
+
+  <!-- 3 -->
+  <div id="s3" class="card hidden">
+    <div class="step"><span class="num">03</span> <span id="s3T">البنود والأكواد</span></div>
+    <div id="sumNote" class="small" style="margin-bottom:6px"></div>
+    <div class="divs" id="divChips"></div>
+    <div class="row" style="margin-bottom:6px">
+      <span class="chip on" id="flt-all" onclick="setFilter('all')">الكل</span>
+      <span class="chip" id="flt-need" onclick="setFilter('need')">محتاج مراجعة</span>
+      <span class="chip" id="flt-user" onclick="setFilter('user')">اللي عدلته</span>
+      <input id="q" placeholder="بحث بالوصف أو الكود أو القسم…" oninput="render()" style="padding:6px 10px;min-width:260px">
+      <span id="cnt" class="muted small"></span>
+    </div>
+    <div class="bulk small">
+      <span>غيّر كل البنود الظاهرة (<b id="bulkN">0</b>) لـ CSI:</span>
+      <input id="bulkCsi" list="dlCSI" placeholder="اكتب كود أو اسم CSI…">
+      <button class="btn sec" onclick="bulkApply()">طبّق</button>
+    </div>
+    <div class="scroll" style="max-height:620px"><table><thead id="itHead"></thead><tbody id="itBody"></tbody></table></div>
+    <div class="more"><button class="link hidden" id="moreBtn" onclick="more()">اعرض كمان</button></div>
+    <datalist id="dlCSI" translate="no"></datalist><datalist id="dlTask" translate="no"></datalist><datalist id="dlCost" translate="no"></datalist>
+    <div class="muted small" style="margin-top:8px">أي كود تغيّره البرنامج بيفتكره لنفس الوصف في المرات الجاية. «ضعيف» = اتعرف من كلمة واحدة أو من عنوان القسم بس — بص عليه.</div>
+  </div>
+
+  <!-- 4 -->
+  <div id="s4" class="card hidden">
+    <div class="step"><span class="num">04</span> ملف PCS</div>
+    <label class="optrow small"><input type="checkbox" id="titles"> <span>حط صف عناوين الأعمدة في أول سطر (من غيره: أول صف = أول بند)</span></label>
+    <div class="row"><button id="go" class="btn" onclick="convert()">تحويل</button></div>
+    <div id="err4" class="err"></div>
+    <div id="result" class="hidden" style="margin-top:14px">
+      <div id="resNotes" class="small" style="margin:10px 0 14px" translate="no"></div>
+      <div class="row" style="margin-bottom:14px">
+        <button class="btn" onclick="saveFile()">حفظ ملف PCS… (اختار المكان)</button>
+        <span id="saved" class="ok small"></span>
+      </div>
+    </div>
+  </div>
+</section>
+</main>
+<div id="busy" class="busy hidden">جاري الشغل…</div>
+<script>
+const $=id=>document.getElementById(id);
+const T=s=>window.I18N?I18N.t(s):s;
+const fmt=n=>Number(n||0).toLocaleString('en-US',{maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+let mode='boq', meta=null, info=null, items=[], filter='all', divF='', shown=300, lastFile=null;
+let ruleById={}, ruleByLabel={}, taskMap={}, costMap={};
+const RT={M:'مواد',L:'عمالة',E:'معدات',S:'مقاول باطن'};
+const CONF={high:['mem','عالي'],memory:['mem','ذاكرة'],user:['mem','انت'],mid:['sug','متوسط'],low:['sug','ضعيف'],none:['none','مالقيتش']};
+function busy(on){ $('busy').classList.toggle('hidden',!on); }
+function err(id,m){ const e=$(id); e.textContent=m||''; e.style.display=m?'block':'none'; }
+async function api(url,body,isForm){
+  const r=await fetch(url,{method:'POST',body:isForm?body:JSON.stringify(body||{}),headers:isForm?{}:{'Content-Type':'application/json'}});
+  const j=await r.json(); if(!r.ok) throw Object.assign(new Error(j.error||'خطأ'),{data:j}); return j;
+}
+function hide(...ids){ ids.forEach(i=>$(i).classList.add('hidden')); }
+function show(...ids){ ids.forEach(i=>$(i).classList.remove('hidden')); }
+const rLabel=r=>r.code+' · '+r.en;
+const EN=()=>window.I18N&&I18N.lang==='en';
+const L=(ar,en)=>EN()?en:ar;
+// لما اللغة تتغير: نرسم النصوص المتولدة تاني باللغة الجديدة
+try{ const _ap=I18N.apply; I18N.apply=function(l){ _ap(l); if(info){ renderSheets(); renderSummary(); render(); } }; }catch(e){}
+
+async function loadMeta(){
+  if(meta) return; meta=await api('/api/coding/meta');
+  meta.rules.forEach(r=>{ ruleById[r.id]=r; const l=rLabel(r); if(!(l in ruleByLabel)) ruleByLabel[l]=r; });
+  $('dlCSI').innerHTML=Object.keys(ruleByLabel).map(l=>`<option value="${esc(l)}">${esc(ruleByLabel[l].ar)}</option>`).join('');
+  meta.task.forEach(x=>taskMap[x.code]=x.ar||x.en); meta.cost.forEach(x=>costMap[x.code]=x.ar||x.en);
+  $('dlTask').innerHTML=meta.task.map(x=>`<option value="${esc(x.code)}">${esc(x.code+' — '+(x.ar||x.en))}</option>`).join('');
+  $('dlCost').innerHTML=meta.cost.map(x=>`<option value="${esc(x.code)}">${esc(x.code+' — '+(x.ar||x.en)+(x.type?' · '+x.type:''))}</option>`).join('');
+}
+function pickMode(m){
+  mode=m; document.querySelectorAll('#modeList .mode').forEach(x=>x.classList.toggle('on',x.dataset.m===m));
+  $('dropHint').textContent=m==='boq'?'xlsx / xlsm — أي شكل مقايسة: البرنامج بيلاقي صف العناوين والأعمدة، وبيشيل عناوين الأقسام والإجماليات'
+    :'xlsx / xlsm — قايمة الموارد (الكود لو موجود · الاسم · الوحدة · السعر · النوع لو موجود)';
+  if(lastFile) upload(lastFile); else hide('s2','s3','s4');
+}
+// ---------- 1 ----------
+const drop=$('drop');
+['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('over')}));
+drop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) upload(e.dataTransfer.files[0]); });
+$('f').addEventListener('change',e=>{ if(e.target.files[0]) upload(e.target.files[0]); e.target.value=''; });
+async function upload(file){
+  lastFile=file; err('err1'); hide('s2','s3','s4','fileRow'); busy(true);
+  try{ await loadMeta(); const fd=new FormData(); fd.append('file',file); fd.append('mode',mode); got(await api('/api/coding/load',fd,true)); }
+  catch(e){ err('err1',e.message); }
+  busy(false);
+}
+function got(j){
+  info=j; items=j.items||[]; items.forEach(it=>{ it._e=false; });
+  $('fileName').innerHTML='<i class="ic ok"></i><b>'+esc(j.file)+'</b>'; show('fileRow');
+  renderSheets(); renderSummary(); divF=''; shown=300;
+  setFilter(items.some(isNeed)?'need':'all');
+  show('s2','s3','s4'); hide('result');
+}
+// ---------- 2 ----------
+const COLS={boq:[['desc','الوصف'],['unit','الوحدة'],['qty','الكمية'],['rate','السعر'],['amount','القيمة'],['no','رقم البند']],
+            res:[['code','كود المورد'],['desc','الاسم'],['unit','الوحدة'],['rate','السعر'],['type','النوع']]};
+function renderSheets(){
+  const cols=COLS[mode];
+  $('shHead').innerHTML=`<tr><th>يطلع</th><th>الشيت</th><th>صف العناوين</th>${cols.map(c=>`<th>${c[1]}</th>`).join('')}<th>البنود</th>${mode==='boq'?'<th>عناوين أقسام</th><th>إجماليات</th><th>مجموع البنود</th><th>الإجمالي في الشيت</th>':'<th>عناوين</th>'}</tr>`;
+  $('shBody').innerHTML=info.sheets.map((s,si)=>{
+    const sel=k=>`<select translate="no" onchange="remap(${si},'${k}',+this.value)"><option value="-1">—</option>${(s.headers||[]).map((h,ci)=>`<option value="${ci}" ${s.cols[k]===ci?'selected':''}>${esc(h)}</option>`).join('')}</select>`;
+    const chk=mode==='boq'&&s.total>0&&!s.skip?(Math.abs(s.sum-s.total)<1?' <i class="ic ok" title="مطابق"></i>':` <span style="color:var(--warn)" title="الفرق">(${fmt(s.sum-s.total)})</span>`):'';
+    return `<tr class="${s.skip?'skip':''}"><td class="cb"><input type="checkbox" ${s.skip?'':'checked'} onchange="skipSheet(${si},!this.checked)"></td>
+      <td translate="no"><b>${esc(s.name)}</b>${s.note?`<span class="why" title="${esc(s.note)}">${esc(s.note)}</span>`:''}</td>
+      <td><input type="number" min="0" value="${s.headRow}" onchange="setHead(${si},+this.value)" title="0 = مفيش صف عناوين"></td>
+      ${cols.map(c=>`<td>${sel(c[0])}</td>`).join('')}
+      <td class="n">${fmt(s.items)}</td><td class="n">${fmt(s.headings)}</td>${mode==='boq'?`<td class="n">${fmt(s.footers)}</td><td class="n">${fmt(s.sum)}</td><td class="n">${s.total?fmt(s.total)+chk:'—'}</td>`:''}</tr>`;
+  }).join('');
+  const used=info.sheets.filter(s=>!s.skip);
+  const nh=fmt(used.reduce((a,s)=>a+s.headings,0)), nf=fmt(used.reduce((a,s)=>a+s.footers,0));
+  $('shNote').innerHTML=L(`<b>${fmt(items.length)}</b> ${mode==='boq'?'بند':'مورد'} من ${fmt(used.length)} شيت · اتشال ${nh} عنوان قسم`+(mode==='boq'?` و ${nf} سطر إجمالي/مرحل`:'')+` (كله مكتوب في ملف المراجعة، وعنوان القسم بيطلع في عمود Section).`,
+    `<b>${fmt(items.length)}</b> ${mode==='boq'?'items':'resources'} from ${fmt(used.length)} sheet(s) · removed ${nh} section titles`+(mode==='boq'?` and ${nf} total / carried-forward rows`:'')+` (all listed in the review file; the section title goes to the Section column).`);
+}
+async function remapBody(b){ busy(true); try{ got(await api('/api/coding/remap',b)); }catch(e){ alert(e.message); } busy(false); }
+function remap(si,k,v){ remapBody({sheet:info.sheets[si].name,cols:{[k]:v}}); }
+function skipSheet(si,v){ remapBody({sheet:info.sheets[si].name,skip:v}); }
+function setHead(si,v){ remapBody({sheet:info.sheets[si].name,headRow:v}); }
+// ---------- 3 ----------
+function isNeed(it){ return it.conf==='low'||it.conf==='none'||!it.csi||(mode==='boq'?!it.task:!it.cost); }
+function renderSummary(){
+  const c=info.conf||{}; const need=items.filter(isNeed).length;
+  $('s3T').textContent=mode==='boq'?'البنود و أكواد CSI / Task':'الموارد و أكواد Cost / CSI';
+  $('sumNote').innerHTML=L('عالي/ذاكرة','High/memory')+` <b>${fmt((c.high||0)+(c.memory||0)+(c.user||0))}</b> · `+L('متوسط','Medium')+` <b>${fmt(c.mid||0)}</b> · `+
+    (need?`<span style="color:var(--warn)">${L('محتاج مراجعة','Needs review')} <b>${fmt(need)}</b></span>`:`<span class="ok"><i class="ic ok"></i>${L('كله متكود','All coded')}</span>`);
+  divChips();
+}
+function divChips(){
+  const m={}; items.forEach(it=>{ const d=it.div||'??'; m[d]=m[d]||{n:0,a:0}; m[d].n++; m[d].a+=it.amount||0; });
+  $('divChips').innerHTML=`<span class="chip ${divF===''?'on':''}" onclick="setDiv('')">كل الـ Divisions</span>`+Object.keys(m).sort().map(d=>
+    `<span class="chip ${divF===d?'on':''}" onclick="setDiv('${d}')" title="${esc((meta.divs[d]||'غير مكوّد'))}${mode==='boq'?' · '+fmt(m[d].a):''}" translate="no" dir="ltr">${d==='??'?'?':'Div '+d} · <b>${fmt(m[d].n)}</b></span>`).join('');
+}
+function setDiv(d){ divF=d; shown=300; divChips(); render(); }
+function setFilter(f){ filter=f; shown=300; ['all','need','user'].forEach(k=>$('flt-'+k).classList.toggle('on',k===f)); render(); }
+function visible(){
+  const q=$('q').value.trim().toLowerCase();
+  return items.filter(it=>(filter==='all'||(filter==='need'?isNeed(it):it._e||it.conf==='user')) && (!divF||(it.div||'??')===divF) &&
+    (!q||(it.desc+' '+it.section+' '+it.csi+' '+it.title+' '+it.task+' '+it.cost+' '+it.code+' '+it.no).toLowerCase().includes(q)));
+}
+function more(){ shown+=300; render(); }
+function tag(it){ const c=CONF[it._e?'user':it.conf]||CONF.none; return `<span class="tag ${c[0]}" title="${esc(it.src||'')}">${c[1]}</span>${it.words?`<span class="why" title="${esc(it.words)}">${esc(it.words)}</span>`:''}`; }
+function codeCell(it,k,dl,map){ const v=it[k]||''; return `<input class="code" list="${dl}" value="${esc(v)}" data-i="${it.i}" data-k="${k}" onchange="setCode(this)"><span class="cdesc" translate="no" title="${esc(map[v]||'')}">${esc(map[v]||(v?'مش في قايمة PCS':''))}</span>`; }
+function csiCell(it){ const r=ruleById[it.rule]; return `<input class="csi" list="dlCSI" value="${esc(it.csi||'')}" data-i="${it.i}" onchange="setCsi(this)" title="${esc(r?rLabel(r):'')}"><span class="cdesc" translate="no" title="${esc(r?r.en+' — '+r.ar:'')}">${esc(r?r.en:'')}</span>`; }
+function render(){
+  const list=visible(); $('bulkN').textContent=fmt(list.length);
+  $('cnt').textContent=L(`${fmt(list.length)} من ${fmt(items.length)}`,`${fmt(list.length)} of ${fmt(items.length)}`);
+  if(mode==='boq'){
+    $('itHead').innerHTML='<tr><th>BOQ Code</th><th>الوصف</th><th>الوحدة</th><th>الكمية</th><th>القيمة</th><th>CSI</th><th>Task Code</th><th>الثقة</th></tr>';
+    $('itBody').innerHTML=list.slice(0,shown).map(it=>`<tr class="${isNeed(it)?(it.csi?'y':'r'):''}">
+      <td class="boq" translate="no">${esc(it.boq)}</td>
+      <td class="desc" translate="no">${esc(it.desc)}<span class="sec">${it.section?esc(it.section)+' · ':''}<span class="rw">${esc(it.sheet)} · صف ${it.row}${it.no?' · بند '+esc(it.no):''}</span></span></td>
+      <td class="u" translate="no">${esc(it.unit)}</td><td class="n">${it.hasQty?fmt(it.qty):''}</td><td class="n">${it.hasAmt?fmt(it.amount):''}</td>
+      <td>${csiCell(it)}</td><td>${codeCell(it,'task','dlTask',taskMap)}</td><td>${tag(it)}</td></tr>`).join('');
+  }else{
+    $('itHead').innerHTML='<tr><th>الكود</th><th>الاسم</th><th>الوحدة</th><th>السعر</th><th>النوع</th><th>CSI</th><th>Cost Code</th><th>الثقة</th></tr>';
+    $('itBody').innerHTML=list.slice(0,shown).map(it=>`<tr class="${isNeed(it)?(it.cost?'y':'r'):''}">
+      <td class="n" translate="no">${esc(it.code)}</td>
+      <td class="desc" translate="no">${esc(it.desc)}<span class="sec">${it.section?esc(it.section)+' · ':''}<span class="rw">${esc(it.sheet)} · صف ${it.row}</span></span></td>
+      <td class="u" translate="no">${esc(it.unit)}</td><td class="n">${it.hasRate?fmt(it.rate):''}</td>
+      <td><select class="rt" data-i="${it.i}" onchange="setRT(this)" title="${esc(it.rtSrc||'')}">${Object.keys(RT).map(k=>`<option value="${k}" ${it.rt===k?'selected':''}>${RT[k]}</option>`).join('')}</select></td>
+      <td>${csiCell(it)}</td><td>${codeCell(it,'cost','dlCost',costMap)}</td><td>${tag(it)}</td></tr>`).join('');
+  }
+  $('moreBtn').classList.toggle('hidden',list.length<=shown);
+}
+function findRule(v){
+  v=(v||'').trim(); if(ruleByLabel[v]) return ruleByLabel[v];
+  const c=v.split('·')[0].trim().replace(/\s+/g,' ');
+  const cands=meta.rules.filter(r=>r.code===c||r.code.replace(/ /g,'')===c.replace(/ /g,''));
+  return cands[0]||null;
+}
+function applyRule(it,r){
+  it.rule=r.id; it.csi=r.code; it.title=r.en; it.div=r.div; it.task=r.task; it._e=true;
+  if(mode==='res'){ const c=r[{M:'mat',L:'lab',S:'sub',E:'eqp'}[it.rt]||'mat']; if(c) it.cost=c; }
+}
+function setCsi(inp){
+  const it=items[+inp.dataset.i]; const r=findRule(inp.value);
+  if(!r){ inp.style.borderColor='var(--bad)'; return; }
+  applyRule(it,r); render(); divChips(); hide('result');
+}
+function setCode(inp){ const it=items[+inp.dataset.i]; it[inp.dataset.k]=inp.value.trim(); it._e=true;
+  const map=inp.dataset.k==='task'?taskMap:costMap; inp.nextElementSibling.textContent=map[it[inp.dataset.k]]||'مش في قايمة PCS'; hide('result'); }
+function setRT(sel){ const it=items[+sel.dataset.i]; it.rt=sel.value; it._e=true; hide('result'); }
+function bulkApply(){
+  const r=findRule($('bulkCsi').value); if(!r){ alert(T('اختار CSI من القايمة')); return; }
+  const list=visible(); if(!list.length) return;
+  if(!confirm(L(`هتغيّر ${list.length} بند لـ ${r.code} · ${r.en}؟`,`Change ${list.length} item(s) to ${r.code} · ${r.en}?`))) return;
+  list.forEach(it=>applyRule(it,r)); render(); divChips(); hide('result');
+}
+// ---------- 4 ----------
+async function convert(){
+  err('err4'); $('saved').textContent='';
+  const edits=items.filter(it=>it._e).map(it=>({i:it.i,rule:it.rule,task:it.task||'',cost:it.cost||'',rt:it.rt||''}));
+  $('go').disabled=true; busy(true);
+  try{
+    const j=await api('/api/coding/convert',{edits,titles:$('titles').checked});
+    items=j.items; info.conf=j.conf; renderSummary(); render();
+    const n=[], ns=fmt(info.sheets.filter(s=>!s.skip).length), w=mode==='boq';
+    const cols=w?'BOQ Code · Description · Unit · Qty · Rate · Amount · CSI Code · CSI Title · CSI Division · Task Code · Task Description · Original Item No · Section'
+      :'Resource Code · Description · Unit · Rate · Resource Type · CSI Code · CSI Title · CSI Division · Cost Code · Cost Description · Task Code';
+    n.push(L(`<b>${fmt(j.outItems)}</b> ${w?'بند':'مورد'} في ${ns} شيت`+(w?` · القيمة <b>${fmt(j.outAmount)}</b>`:'')+'.',`<b>${fmt(j.outItems)}</b> ${w?'items':'resources'} in ${ns} sheet(s)`+(w?` · amount <b>${fmt(j.outAmount)}</b>`:'')+'.'));
+    if(j.edited) n.push(L(`${fmt(j.edited)} تعديل اتحفظ في ذاكرة التكويد.`,`${fmt(j.edited)} edit(s) saved to the coding memory.`));
+    if(j.uncoded) n.push(`<span style="color:var(--warn)"><i class="ic warn"></i>${L(`${fmt(j.uncoded)} ${w?'بند':'مورد'} لسه من غير كود كامل — هيطلعوا فاضيين.`,`${fmt(j.uncoded)} still without a full code — they'll go out blank.`)}</span>`);
+    n.push($('titles').checked?L('أول صف = عناوين الأعمدة، وبعده البنود على طول.','Row 1 = column titles, then the items.'):L('أول صف = أول بند (من غير عناوين أعمدة، ولا عناوين أقسام، ولا إجماليات).','Row 1 = first item (no column titles, no section titles, no totals).'));
+    n.push(L('الأعمدة: ','Columns: ')+cols+(w?L(' — شيت لكل شيت في الأصل.',' — one sheet per source sheet.'):'.'));
+    n.push(L('ملف المراجعة جنبه: كل بند ودرجة الثقة واتعرف منين، ملخص CSI، واللي اتشال'+(w?'، ومطابقة الإجماليات.':'.'),'Review file next to it: every item with confidence and source, CSI summary, removed rows'+(w?', and totals check.':'.')));
+    $('resNotes').innerHTML=n.join('<br>'); show('result'); $('result').scrollIntoView({behavior:'smooth'});
+  }catch(e){ err('err4',e.message); }
+  $('go').disabled=false; busy(false);
+}
+async function saveFile(){
+  try{ const j=await api('/api/coding/save');
+    if(j.path){ $('saved').innerHTML='<i class="ic ok"></i>اتحفظ: '+esc(j.path)+' · <button class="link" onclick="openF('+JSON.stringify(j.path).replace(/"/g,'&quot;')+')">افتح الفولدر</button><br><span class="muted small">وملف المراجعة جنبه، واتسجل في السجل.</span>'+(j.dbNote?'<br><span style="color:var(--bad)">'+esc(j.dbNote)+'</span>':''); } }
+  catch(e){ $('saved').textContent=e.message; }
+}
+async function openF(p){ try{ await api('/api/open-folder',{path:p}); }catch(e){} }
+</script>
+</body>
+</html>
