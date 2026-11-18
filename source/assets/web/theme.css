@@ -244,3 +244,7 @@ th,.tbl th{font-size:var(--fs-sm)!important}
 
 /* 2.13: عنوان الجدول الثابت (sticky) بخلفية صلبة عشان البنود ماتبانش تحته وهي بتتحرك */
 .scroll th{background:var(--card)!important;z-index:3!important;box-shadow:inset 0 -1px 0 var(--ink)}
+
+/* 2.26: «افتح الفولدر» بعد الحفظ زرار واضح زي «تحويل» */
+.btn.openf{display:inline-flex;align-items:center;gap:8px;margin-inline-start:12px;vertical-align:middle;font-size:14px}
+.btn.openf::before{content:"";width:18px;height:18px;background:currentColor;-webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linejoin='round'%3E%3Cpath d='M3 6.5A1.5 1.5 0 0 1 4.5 5h4.2l2 2.2h8.8A1.5 1.5 0 0 1 21 8.7v9.8a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18.5z'/%3E%3C/svg%3E") center/contain no-repeat}

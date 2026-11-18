@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <title>Coding</title>
-<link rel="stylesheet" href="/assets/base.css?v=40">
-<link rel="stylesheet" href="/assets/theme.css?v=40">
-<script src="/assets/i18n.js?v=40"></script>
+<link rel="stylesheet" href="/assets/base.css?v=41">
+<link rel="stylesheet" href="/assets/theme.css?v=41">
+<script src="/assets/i18n.js?v=41"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();</script>
 <style>
 .shTbl td,.shTbl th{white-space:nowrap}
@@ -85,7 +85,6 @@ select.rt{padding:4px 6px}
   <!-- 4 -->
   <div id="s4" class="card hidden">
     <div class="step"><span class="num">04</span> ملف PCS</div>
-    <label class="optrow small"><input type="checkbox" id="titles"> <span>حط صف عناوين الأعمدة في أول سطر (من غيره: أول صف = أول بند)</span></label>
     <div class="row"><button id="go" class="btn" onclick="convert()">تحويل</button></div>
     <div id="err4" class="err"></div>
     <div id="result" class="hidden" style="margin-top:14px">
@@ -255,7 +254,7 @@ async function convert(){
   const edits=items.filter(it=>it._e).map(it=>({i:it.i,rule:it.rule,task:it.task||'',cost:it.cost||'',rt:it.rt||''}));
   $('go').disabled=true; busy(true);
   try{
-    const j=await api('/api/coding/convert',{edits,titles:$('titles').checked});
+    const j=await api('/api/coding/convert',{edits,titles:true});
     items=j.items; info.conf=j.conf; renderSummary(); render();
     const n=[], ns=fmt(info.sheets.filter(s=>!s.skip).length), w=mode==='boq';
     const cols=w?'BOQ Code · Description · Unit · Qty · Rate · Amount · CSI Code · CSI Title · CSI Division · Task Code · Task Description · Original Item No · Section'
@@ -263,7 +262,7 @@ async function convert(){
     n.push(L(`<b>${fmt(j.outItems)}</b> ${w?'بند':'مورد'} في ${ns} شيت`+(w?` · القيمة <b>${fmt(j.outAmount)}</b>`:'')+'.',`<b>${fmt(j.outItems)}</b> ${w?'items':'resources'} in ${ns} sheet(s)`+(w?` · amount <b>${fmt(j.outAmount)}</b>`:'')+'.'));
     if(j.edited) n.push(L(`${fmt(j.edited)} تعديل اتحفظ في ذاكرة التكويد.`,`${fmt(j.edited)} edit(s) saved to the coding memory.`));
     if(j.uncoded) n.push(`<span style="color:var(--warn)"><i class="ic warn"></i>${L(`${fmt(j.uncoded)} ${w?'بند':'مورد'} لسه من غير كود كامل — هيطلعوا فاضيين.`,`${fmt(j.uncoded)} still without a full code — they'll go out blank.`)}</span>`);
-    n.push($('titles').checked?L('أول صف = عناوين الأعمدة، وبعده البنود على طول.','Row 1 = column titles, then the items.'):L('أول صف = أول بند (من غير عناوين أعمدة، ولا عناوين أقسام، ولا إجماليات).','Row 1 = first item (no column titles, no section titles, no totals).'));
+    n.push(L('أول صف = عناوين الأعمدة، وبعده البنود على طول (من غير عناوين أقسام ولا إجماليات).','Row 1 = column titles, then the items (no section titles, no totals).'));
     n.push(L('الأعمدة: ','Columns: ')+cols+(w?L(' — شيت لكل شيت في الأصل.',' — one sheet per source sheet.'):'.'));
     n.push(L('ملف المراجعة جنبه: كل بند ودرجة الثقة واتعرف منين، ملخص CSI، واللي اتشال'+(w?'، ومطابقة الإجماليات.':'.'),'Review file next to it: every item with confidence and source, CSI summary, removed rows'+(w?', and totals check.':'.')));
     $('resNotes').innerHTML=n.join('<br>'); show('result'); $('result').scrollIntoView({behavior:'smooth'});
@@ -272,7 +271,7 @@ async function convert(){
 }
 async function saveFile(){
   try{ const j=await api('/api/coding/save');
-    if(j.path){ $('saved').innerHTML='<i class="ic ok"></i>اتحفظ: '+esc(j.path)+' · <button class="link" onclick="openF('+JSON.stringify(j.path).replace(/"/g,'&quot;')+')">افتح الفولدر</button><br><span class="muted small">وملف المراجعة جنبه، واتسجل في السجل.</span>'+(j.dbNote?'<br><span style="color:var(--bad)">'+esc(j.dbNote)+'</span>':''); } }
+    if(j.path){ $('saved').innerHTML='<i class="ic ok"></i>اتحفظ: '+esc(j.path)+' <button class="btn openf" onclick="openF('+JSON.stringify(j.path).replace(/"/g,'&quot;')+')">افتح الفولدر</button><br><span class="muted small">وملف المراجعة جنبه، واتسجل في السجل.</span>'+(j.dbNote?'<br><span style="color:var(--bad)">'+esc(j.dbNote)+'</span>':''); } }
   catch(e){ $('saved').textContent=e.message; }
 }
 async function openF(p){ try{ await api('/api/open-folder',{path:p}); }catch(e){} }
