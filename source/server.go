@@ -342,6 +342,7 @@ func startServerOn(addr string) (string, error) {
 	registerStore(mux)
 	registerFinance(mux)
 	registerCoding(mux)
+	registerGLIPC(mux)
 	registerHistory(mux)
 	sub, _ := fs.Sub(webFS, "assets/web")
 	files := http.StripPrefix("/assets/", http.FileServer(http.FS(sub)))

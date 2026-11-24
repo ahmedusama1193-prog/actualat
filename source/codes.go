@@ -169,6 +169,8 @@ type Memory struct {
 	// مقاول|أعمال#ترتيب -> Contract No (عشان الرقم يفضل ثابت ومايتكررش لشركتين)
 	Contract map[string]string `json:"contract"`
 	CodesRev int               `json:"codesRev"` // نسخة قوائم PCS اللي الذاكرة متكودة عليها
+	// 2.27: قيود دفتر الشركة اللي اتصدّرت مستخلصات (رقم القيد|المبلغ -> تاريخ التصدير)
+	GLVouchers map[string]string `json:"glVouchers,omitempty"`
 }
 
 var mem = &Memory{Task: map[string]string{}, Cost: map[string]string{}, Contract: map[string]string{}}

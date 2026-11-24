@@ -3,14 +3,59 @@
 <head>
 <meta charset="utf-8">
 <title>المستخلصات</title>
-<link rel="stylesheet" href="/assets/base.css?v=41">
-<link rel="stylesheet" href="/assets/theme.css?v=41">
-<script src="/assets/i18n.js?v=41"></script>
+<link rel="stylesheet" href="/assets/base.css?v=42">
+<link rel="stylesheet" href="/assets/theme.css?v=42">
+<script src="/assets/i18n.js?v=42"></script>
 <script>document.documentElement.dataset.theme=(function(){try{return parent.__theme||'dark'}catch(e){return 'dark'}})();window.__cur=(function(){try{return parent.__cur??'ج.م'}catch(e){return 'ج.م'}})();</script>
+<style>tr.skip td{opacity:.45} tr.skip td.cb{opacity:1} td.cb{width:34px;text-align:center}</style>
 </head>
 <body>
 <main>
-  <div class="ptitle"><div><h1>المستخلصات</h1><div class="sub">تحويل شيت Sub Contractor في الكوست ريبورت لقالب مستخلصات PCS</div></div></div>
+  <div class="ptitle"><div><h1>المستخلصات</h1><div class="sub" id="pSub">تحويل شيت Sub Contractor في الكوست ريبورت لقالب مستخلصات PCS</div></div></div>
+  <div class="utabs">
+    <button class="utab on" id="srcRep" onclick="setSrc('rep')">الكوست ريبورت (Sub Contractor)</button>
+    <button class="utab" id="srcGl" onclick="setSrc('gl')">دفتر الشركة (Company Books)</button>
+  </div>
+<section id="pGl" class="hidden">
+  <div class="card">
+    <div class="step"><span class="num">01</span> اختار شيت دفتر الشركة</div>
+    <div id="glDrop" class="drop" onclick="$('glF').click()">اسحب الملف هنا أو <b>اضغط للاختيار</b><br><small>xlsx — قيود حساب المقاولين: Date · Voucher · Account · Description · Task Code · Cost Code · Debit · Credit (أو Debit − credit). كل قيد = مستخلص</small></div>
+    <input id="glF" type="file" accept=".xlsx,.xlsm" class="hidden">
+    <div id="glFileRow" class="row hidden" style="margin-top:12px">
+      <span id="glFileName" translate="no"></span>
+      <span class="muted">· الشيت:</span><select id="glSheet" translate="no" onchange="glChangeSheet()"></select>
+    </div>
+    <div id="glStats" class="stats hidden"></div>
+    <div id="glErr1" class="err"></div>
+  </div>
+  <div id="glS2" class="card hidden">
+    <div class="step"><span class="num">02</span> المقاولين والعقود</div>
+    <div class="small muted" style="margin-bottom:8px">البرنامج قرا اسم المقاول والأعمال ورقم المستخلص من البيان. لو العقد ده موجود على PCS قبل كده، اكتب رقمه في Contract No عشان المستخلصات تتضاف عليه.</div>
+    <div class="scroll" style="max-height:340px"><table><thead><tr><th>Contract No</th><th>المقاول</th><th>الأعمال</th><th>المستخلصات</th><th>القيود</th><th>الإجمالي</th></tr></thead><tbody id="glConBody"></tbody></table></div>
+    <datalist id="dlCno" translate="no"></datalist>
+  </div>
+  <div id="glS3" class="card hidden">
+    <div class="step"><span class="num">03</span> القيود</div>
+    <div class="small muted" style="margin-bottom:8px">«محسوب» = البيان مافيهوش رقم مستخلص، فالبرنامج حط الرقم اللي بعد المستخلص اللي قبله. تقدر تغيّر الرقم أو العقد، أو تشيل العلامة عشان القيد مايطلعش.</div>
+    <div class="scroll" style="max-height:560px"><table><thead><tr><th>يطلع</th><th>التاريخ</th><th>القيد</th><th>البيان</th><th>العقد</th><th>رقم المستخلص</th><th>الفاتورة</th><th>Task / Cost</th><th>المبلغ</th></tr></thead><tbody id="glLineBody"></tbody></table></div>
+  </div>
+  <div id="glS4" class="card hidden">
+    <div class="step"><span class="num">04</span> ملف PCS</div>
+    <div class="fields" style="margin-bottom:12px">
+      <label>الضمان (Retention) %: <input type="number" id="glRet" value="0" min="0" max="100" style="width:70px"></label>
+      <label>VAT %: <input type="number" id="glVat" value="15" min="0" max="100" style="width:70px"></label>
+    </div>
+    <div class="row"><button id="glGo" class="btn" onclick="glConvert()">تحويل</button></div>
+    <div id="glErr4" class="err"></div>
+    <div id="glResult" class="hidden" style="margin-top:14px">
+      <div id="glNotes" class="small" style="margin:10px 0 14px" translate="no"></div>
+      <div class="row" style="margin-bottom:14px">
+        <button class="btn" onclick="glSave()">حفظ ملف PCS… (اختار المكان)</button>
+        <span id="glSaved" class="ok small"></span>
+      </div>
+    </div>
+  </div>
+</section>
 <section id="pIpc">
   <!-- 1 -->
   <div class="card">
@@ -110,6 +155,86 @@ async function api(url,body,isForm){
 }
 function hide(...ids){ ids.forEach(i=>$(i).classList.add('hidden')); }
 function show(...ids){ ids.forEach(i=>$(i).classList.remove('hidden')); }
+
+// ---------- مصدر المستخلصات ----------
+function setSrc(k){
+  $('srcRep').classList.toggle('on',k==='rep'); $('srcGl').classList.toggle('on',k==='gl');
+  $('pIpc').classList.toggle('hidden',k!=='rep'); $('pGl').classList.toggle('hidden',k!=='gl');
+  $('pSub').textContent=k==='gl'?T('تحويل قيود المقاولين في دفتر الشركة (GL) لقالب مستخلصات PCS — كل قيد = مستخلص بمبلغه'):T('تحويل شيت Sub Contractor في الكوست ريبورت لقالب مستخلصات PCS');
+}
+const T=s=>window.I18N?I18N.t(s):s;
+let gl=null;
+const glDrop=$('glDrop');
+['dragover','dragenter'].forEach(ev=>glDrop.addEventListener(ev,e=>{e.preventDefault();glDrop.classList.add('over')}));
+['dragleave','drop'].forEach(ev=>glDrop.addEventListener(ev,e=>{e.preventDefault();glDrop.classList.remove('over')}));
+glDrop.addEventListener('drop',e=>{ if(e.dataTransfer.files[0]) glUpload(e.dataTransfer.files[0]); });
+$('glF').addEventListener('change',e=>{ if(e.target.files[0]) glUpload(e.target.files[0]); e.target.value=''; });
+async function glUpload(file){
+  err('glErr1'); hide('glS2','glS3','glS4','glFileRow','glStats'); busy(true);
+  const fd=new FormData(); fd.append('file',file);
+  try{ glShow(await api('/api/ipcgl/load',fd,true)); }catch(e){ err('glErr1',e.message); }
+  busy(false);
+}
+async function glChangeSheet(){ busy(true); err('glErr1'); try{ glShow(await api('/api/ipcgl/sheet',{sheet:$('glSheet').value})); }catch(e){ err('glErr1',e.message); } busy(false); }
+function glShow(j){
+  gl=j; gl.lines.forEach(l=>{ l._skip=false; l._e=false; }); gl.contracts.forEach(c=>c._e=false);
+  $('glFileName').innerHTML='<i class="ic ok"></i><b>'+esc(j.file)+'</b>';
+  $('glSheet').innerHTML=j.sheets.map(s=>`<option ${s===j.sheet?'selected':''}>${esc(s)}</option>`).join(''); show('glFileRow');
+  $('glStats').innerHTML=`<div class="stat"><span class="muted small">${T('القيود')}</span><b>${fmt(j.lines.length)}</b></div>
+    <div class="stat"><span class="muted small">${T('العقود')}</span><b>${fmt(j.contracts.length)}</b></div>
+    <div class="stat"><span class="muted small">${T('الإجمالي')}</span><b>${fmt(j.total)}</b></div>`+
+    (j.before?`<div class="stat"><span class="muted small" style="color:var(--warn)">${T('اتصدّرت قبل كده')}</span><b style="color:var(--warn)">${fmt(j.before)}</b></div>`:'');
+  show('glStats');
+  $('dlCno').innerHTML=(j.known||[]).map(k=>`<option value="${esc(k.cno)}">${esc(k.key.replace('|',' · '))}</option>`).join('');
+  glRender(); show('glS2','glS3','glS4'); hide('glResult');
+}
+function glRender(){
+  $('glConBody').innerHTML=gl.contracts.map(c=>`<tr>
+    <td><input class="code" style="width:150px" list="dlCno" value="${esc(c.contractNo)}" onchange="glCon(${c.id},'contractNo',this.value)">${c.known?'':`<span class="tag sug" style="margin-inline-start:6px">${T('جديد')}</span>`}</td>
+    <td><input style="min-width:280px;padding:5px 8px" value="${esc(c.contractor)}" onchange="glCon(${c.id},'contractor',this.value)" translate="no"></td>
+    <td><input style="min-width:260px;padding:5px 8px" value="${esc(c.trade)}" onchange="glCon(${c.id},'trade',this.value)" translate="no"></td>
+    <td class="n">${fmt(c.ipcs)}</td><td class="n">${fmt(c.lines)}</td><td class="n">${fmt(c.amount)}</td></tr>`).join('');
+  const opts=id=>gl.contracts.map(c=>`<option value="${c.id}" ${c.id===id?'selected':''}>${esc(c.contractNo+' · '+c.contractor)}</option>`).join('')+`<option value="-1">${T('+ عقد جديد لنفس المقاول')}</option>`;
+  const ls=[...gl.lines].sort((a,b)=>a.contract-b.contract||a.ipc-b.ipc||(a.date<b.date?-1:1));
+  $('glLineBody').innerHTML=ls.map(l=>`<tr class="${l._skip?'skip':''}${l.before?' y':''}">
+    <td class="cb"><input type="checkbox" ${l._skip?'':'checked'} onchange="glSkip(${l.i},!this.checked)"></td>
+    <td class="n" translate="no">${esc(l.date)}</td><td class="n" translate="no">${esc(l.voucher)}</td>
+    <td class="small" style="min-width:320px;max-width:560px;white-space:normal" translate="no">${esc(l.desc)}${l.before?`<br><span style="color:var(--warn)">${T('اتصدّر قبل كده')} ${esc(l.before)}</span>`:''}</td>
+    <td><select style="max-width:260px;padding:4px 6px" onchange="glLine(${l.i},'contract',+this.value)" translate="no">${opts(l.contract)}</select></td>
+    <td><input type="number" min="1" style="width:64px;padding:4px 6px" value="${l.ipc}" onchange="glLine(${l.i},'ipc',+this.value)"> <span class="muted small">${T(l.ipcSrc)}</span></td>
+    <td class="n" translate="no">${esc(l.invoice)}</td>
+    <td class="small" translate="no">${esc(l.task)}<br>${esc(l.cost)}</td>
+    <td class="n">${fmt(l.amount)}</td></tr>`).join('');
+}
+function glCon(id,k,v){ const c=gl.contracts[id]; c[k]=v; c._e=true; hide('glResult'); }
+function glLine(i,k,v){ const l=gl.lines[i]; l['_'+k]=v; l._e=true; hide('glResult'); if(k==='contract'&&v===-1) glConvert(true); }
+function glSkip(i,v){ gl.lines[i]._skip=v; glRender(); hide('glResult'); }
+async function glConvert(quiet){
+  err('glErr4'); $('glSaved').textContent='';
+  const body={contracts:gl.contracts.filter(c=>c._e).map(c=>({id:c.id,contractor:c.contractor,trade:c.trade,contractNo:c.contractNo})),
+    lines:gl.lines.filter(l=>l._e).map(l=>({i:l.i,contract:l._contract??l.contract,ipc:l._ipc||0})),
+    ret:+$('glRet').value||0,vat:+$('glVat').value||0,unit:'LS',skip:gl.lines.filter(l=>l._skip).map(l=>l.i)};
+  $('glGo').disabled=true; busy(true);
+  try{
+    const j=await api('/api/ipcgl/convert',body); const skips=new Set(body.skip);
+    gl=Object.assign(gl,j); gl.lines.forEach(l=>{ l._skip=skips.has(l.i); l._e=false; delete l._contract; delete l._ipc; }); gl.contracts.forEach(c=>c._e=false);
+    glRender();
+    if(quiet!==true){
+      const EN=window.I18N&&I18N.lang==='en', n=[];
+      n.push(EN?`<b>${fmt(j.outLines)}</b> entries → <b>${fmt(gl.contracts.length)}</b> contracts · total <b>${fmt(j.outTotal)}</b>`:`<b>${fmt(j.outLines)}</b> قيد ← <b>${fmt(gl.contracts.length)}</b> عقد · الإجمالي <b>${fmt(j.outTotal)}</b>`+(skips.size?` (اتشال ${fmt(skips.size)} قيد)`:''));
+      n.push(EN?'Each entry = one IPC line, lump sum (LS) qty 1 at its amount; IPC date = entry date; Task / Cost as in the sheet.':'كل قيد = سطر مستخلص مقطوعية (LS) بكمية 1 وبمبلغه زي ما هو · تاريخ المستخلص = تاريخ القيد · Task / Cost زي ما هما في الشيت.');
+      if(j.before) n.push(`<span style="color:var(--warn)"><i class="ic warn"></i>${EN?`${fmt(j.before)} entries were exported before — make sure you don't import them into PCS twice.`:`${fmt(j.before)} قيد اتصدّر قبل كده — اتأكد إنك مش هترفعهم على PCS مرتين.`}</span>`);
+      n.push(EN?'Review file next to it: contracts, and every entry with its IPC number and source.':'ملف المراجعة جنبه: العقود، وكل قيد ورقم المستخلص بتاعه واتحسب منين.');
+      $('glNotes').innerHTML=n.join('<br>'); show('glResult'); $('glResult').scrollIntoView({behavior:'smooth'});
+    }
+  }catch(e){ err('glErr4',e.message); }
+  $('glGo').disabled=false; busy(false);
+}
+async function glSave(){
+  try{ const j=await api('/api/ipcgl/save');
+    if(j.path){ $('glSaved').innerHTML='<i class="ic ok"></i>اتحفظ: '+esc(j.path)+' <button class="btn openf" onclick="openF('+JSON.stringify(j.path).replace(/"/g,'&quot;')+')">افتح الفولدر</button><br><span class="muted small">وملف المراجعة جنبه، واتسجل في السجل.</span>'+(j.dbNote?'<br><span style="color:var(--bad)">'+esc(j.dbNote)+'</span>':''); } }
+  catch(e){ $('glSaved').textContent=e.message; }
+}
 
 // ---------- 1: file ----------
 const drop=$('drop');
